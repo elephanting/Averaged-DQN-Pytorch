@@ -24,7 +24,7 @@ parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, a
 args = parser.parse_args()
 
 num_frames = 1400000
-batch_size = 32
+batch_size = 64
 gamma      = 0.99
 
 # use CUDA
@@ -217,7 +217,7 @@ for frame_idx in range(1, num_frames + 1):
         
     if frame_idx % 100000 == 0:
         #plot(frame_idx, all_rewards, losses)
-        np.save('idx.npy', frame_idx)
+        np.save('idx.npy', frame_done)
         np.save('reward.npy', all_rewards)
         print(frame_idx)
         print(np.mean(all_rewards[-10:]))
