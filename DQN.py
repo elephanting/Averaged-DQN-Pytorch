@@ -7,7 +7,6 @@ import math, random
 import gym
 import numpy as np
 import argparse
-import copy
 
 import torch
 import torch.nn as nn
@@ -24,7 +23,7 @@ parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, a
 args = parser.parse_args()
 
 num_frames = 1400000
-batch_size = 64
+batch_size = 32
 gamma      = 0.99
 
 # use CUDA
@@ -61,7 +60,7 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 replay_initial = 10000
-replay_buffer = ReplayBuffer(100000)
+replay_buffer = ReplayBuffer(500000)
 
 
 # Deep Q Network
@@ -167,7 +166,7 @@ def plot(frame_idx, rewards, losses):
     plt.plot(losses)
     #plt.show()
        
-optimizer = optim.Adam(model.parameters(), lr=0.00001)
+optimizer = optim.RMSprop(model.parameters(), lr=0.00025, momentum=0.95)
 
 # Epsilon greedy exploration
 epsilon_start = 1.0
@@ -207,7 +206,7 @@ for frame_idx in range(1, num_frames + 1):
         loss = compute_td_loss(batch_size)
         #losses.append(loss.item())
 
-    if frame_idx % 1000 == 0:
+    if frame_idx % 10000 == 0:
         if args.average:
             idx = q_idx % (args.k)
             q_idx += 1
@@ -221,6 +220,3 @@ for frame_idx in range(1, num_frames + 1):
         np.save('reward.npy', all_rewards)
         print(frame_idx)
         print(np.mean(all_rewards[-10:]))
-
-    if frame_idx % 100 == 0:
-        target_model = copy.deepcopy(model)
