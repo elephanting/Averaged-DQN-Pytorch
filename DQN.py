@@ -108,12 +108,12 @@ if args.average:
         Qs.append(DQN(env.observation_space.shape, env.action_space.n))
 
 
-target_model = DQN(env.observation_space.shape, env.action_space.n)
+target_model = copy.deepcopy(model)
 if USE_CUDA:
     model = model.cuda()
 
 
-def compute_td_loss(batch_size):
+def compute_td_loss(batch_size, idx):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = Variable(torch.FloatTensor(np.float32(state)))
@@ -134,6 +134,7 @@ def compute_td_loss(batch_size):
         
     next_q_values = target_model(next_state)
 
+
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
     next_q_value     = next_q_values.max(1)[0]
     expected_q_value = reward + gamma * next_q_value * (1 - done)
@@ -144,6 +145,9 @@ def compute_td_loss(batch_size):
     loss.backward()
     optimizer.step()
     
+    index = frame_idx % args.k
+    Q[index] = copy.deepcopy(model)
+
     return loss
 
 def plot(frame_idx, rewards, losses):
@@ -198,7 +202,7 @@ for frame_idx in range(1, num_frames + 1):
         #    print(episode)
         
     if len(replay_buffer) > replay_initial:
-        loss = compute_td_loss(batch_size)
+        loss = compute_td_loss(batch_size, frame_idx)
         #losses.append(loss.item())
         
     if frame_idx % 100000 == 0:
