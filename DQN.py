@@ -102,20 +102,19 @@ class DQN(nn.Module):
         return action
 
 model = DQN(env.observation_space.shape, env.action_space.n)
-if args.average:
-    Qs = []
-    for _ in range(args.k-1):
-        copy_model = type(model)().cuda()
-        copy_model.load_state_dict(model.state_dict())
-        Qs.append(copy_model)
-
-
-target_model = type(model)().cuda()
-target_model.load_state_dict(model.state_dict())
 
 if USE_CUDA:
     model = model.cuda()
 
+if args.average:
+    Qs = []
+    for _ in range(args.k-1):
+        copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+        copy_model.load_state_dict(model.state_dict())
+        Qs.append(copy_model)
+
+target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+target_model.load_state_dict(model.state_dict())
 
 def compute_td_loss(batch_size, idx):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
