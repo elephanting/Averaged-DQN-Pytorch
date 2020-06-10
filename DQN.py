@@ -23,6 +23,10 @@ parser.add_argument('--average', action='store_true', help='perform Averaged-DQN
 parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, average k action values')
 args = parser.parse_args()
 
+num_frames = 1400000
+batch_size = 32
+gamma      = 0.99
+
 # use CUDA
 USE_CUDA = torch.cuda.is_available()
 Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
@@ -108,15 +112,15 @@ if USE_CUDA:
 
 if args.average:
     Qs = []
-    for _ in range(args.k-1):
+    for _ in range(args.k):
         copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
         copy_model.load_state_dict(model.state_dict())
         Qs.append(copy_model)
+else:
+    target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+    target_model.load_state_dict(model.state_dict())
 
-target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
-target_model.load_state_dict(model.state_dict())
-
-def compute_td_loss(batch_size, idx):
+def compute_td_loss(batch_size):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = Variable(torch.FloatTensor(np.float32(state)))
@@ -126,19 +130,19 @@ def compute_td_loss(batch_size, idx):
     reward     = Variable(torch.FloatTensor(reward))
     done       = Variable(torch.FloatTensor(done))
 
+    q_values   = model(state)
+    
     if args.average:
         # Averaged-DQN
-        total_q = model(state)
         with torch.no_grad():
-            for i in range(args.k-1):
-                total_q += Qs[i](state)
-        q_values = total_q / args.k
+            total_q = torch.zeros(batch_size, env.action_space.n)
+            for i in range(args.k):
+                total_q += Qs[i](next_state)
+            next_q_values = total_q / args.k
     else:
         # normal DQN
-        q_values      = model(state)
-        
-    next_q_values = target_model(next_state)
-
+        with torch.no_grad():
+            next_q_values = target_model(next_state)
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
     next_q_value     = next_q_values.max(1)[0]
@@ -149,10 +153,6 @@ def compute_td_loss(batch_size, idx):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    
-    if args.average:
-        index = frame_idx % (args.k-1)
-        Qs[index].load_state_dict(model.state_dict())
 
     return loss
 
@@ -181,10 +181,6 @@ all_rewards = []
 frame_done = []
 episode_reward = 0
 
-num_frames = 1400000
-batch_size = 32
-gamma      = 0.99
-
 state = env.reset()
 episode = 0
 for frame_idx in range(1, num_frames + 1):
@@ -208,8 +204,13 @@ for frame_idx in range(1, num_frames + 1):
         #    print(episode)
         
     if len(replay_buffer) > replay_initial:
-        loss = compute_td_loss(batch_size, frame_idx)
+        loss = compute_td_loss(batch_size)
         #losses.append(loss.item())
+
+    if frame_idx % 1000 == 0:
+        if args.average:
+            idx = frame_idx % (args.k)
+            Qs[idx].load_state_dict(model.state_dict())
         
     if frame_idx % 100000 == 0:
         #plot(frame_idx, all_rewards, losses)
