@@ -17,6 +17,12 @@ import torch.nn.functional as F
 
 import matplotlib.pyplot as plt
 
+# arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--average', action='store_true', help='perform Averaged-DQN')
+parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, average k action values')
+args = parser.parse_args()
+
 # use CUDA
 USE_CUDA = torch.cuda.is_available()
 Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
@@ -204,9 +210,3 @@ for frame_idx in range(1, num_frames + 1):
 
     if frame_idx % 100 == 0:
         target_model = copy.deepcopy(model)
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--average', action='store_true', help='perform Averaged-DQN')
-    parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, average k action values')
-    args = parser.parse_args()
