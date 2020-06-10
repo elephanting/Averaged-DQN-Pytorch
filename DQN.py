@@ -200,7 +200,6 @@ for frame_idx in range(1, num_frames + 1):
         all_rewards.append(episode_reward)
         frame_done.append(frame_idx)
         episode_reward = 0
-        episode += 1
         #if episode % 10 == 0:
         #    print(episode)
         
