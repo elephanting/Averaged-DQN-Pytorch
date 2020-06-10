@@ -104,11 +104,15 @@ class DQN(nn.Module):
 model = DQN(env.observation_space.shape, env.action_space.n)
 if args.average:
     Qs = []
-    for _ in range(args.k):
-        Qs.append(DQN(env.observation_space.shape, env.action_space.n))
+    for _ in range(args.k-1):
+        copy_model = type(model)().cuda()
+        copy_model.load_state_dict(model.state_dict())
+        Qs.append(copy_model)
 
 
-target_model = copy.deepcopy(model)
+target_model = type(model)().cuda()
+target_model.load_state_dict(model.state_dict())
+
 if USE_CUDA:
     model = model.cuda()
 
@@ -117,22 +121,24 @@ def compute_td_loss(batch_size, idx):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = Variable(torch.FloatTensor(np.float32(state)))
-    next_state = Variable(torch.FloatTensor(np.float32(next_state)), volatile=True)
+    with torch.no_grad():
+        next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action     = Variable(torch.LongTensor(action))
     reward     = Variable(torch.FloatTensor(reward))
     done       = Variable(torch.FloatTensor(done))
 
     if args.average:
         # Averaged-DQN
-        total_q = 0
-        for i in range(args.k):
-            total_q += Qs[i](state)
+        total_q = model(state)
+        with torch.no_grad():
+            for i in range(args.k-1):
+                total_q += Qs[i](state)
         q_values = total_q / args.k
     else:
         # normal DQN
         q_values      = model(state)
         
-    next_q_values = target_model(next_state)
+    next_q_values = model(next_state)
 
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
@@ -145,8 +151,9 @@ def compute_td_loss(batch_size, idx):
     loss.backward()
     optimizer.step()
     
-    index = frame_idx % args.k
-    Q[index] = copy.deepcopy(model)
+    if args.average:
+        index = frame_idx % (args.k-1)
+        Qs[index].load_state_dict(model.state_dict())
 
     return loss
 
