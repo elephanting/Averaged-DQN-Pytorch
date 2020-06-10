@@ -30,7 +30,7 @@ Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if 
 # Atari Environment
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
-env_id = "Breakout-v0"
+env_id = "BreakoutNoFrameskip-v4"
 env    = make_atari(env_id)
 env    = wrap_deepmind(env)
 env    = wrap_pytorch(env)
@@ -137,7 +137,7 @@ def compute_td_loss(batch_size, idx):
         # normal DQN
         q_values      = model(state)
         
-    next_q_values = model(next_state)
+    next_q_values = target_model(next_state)
 
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
@@ -216,7 +216,7 @@ for frame_idx in range(1, num_frames + 1):
         np.save('idx.npy', frame_idx)
         np.save('reward.npy', all_rewards)
         print(frame_idx)
-        print(all_rewards[-1])
+        print(np.mean(all_rewards[-10:]))
 
     if frame_idx % 100 == 0:
         target_model = copy.deepcopy(model)
