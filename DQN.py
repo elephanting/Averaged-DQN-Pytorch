@@ -98,7 +98,8 @@ class DQN(nn.Module):
     
     def act(self, state, epsilon):
         if random.random() > epsilon:
-            state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), volatile=True)
+            with torch.no_grad():
+                state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0))
             q_value = self.forward(state)
             action  = q_value.max(1)[1].data[0]
         else:
@@ -135,7 +136,7 @@ def compute_td_loss(batch_size):
     if args.average:
         # Averaged-DQN
         with torch.no_grad():
-            total_q = torch.zeros(batch_size, env.action_space.n)
+            total_q = torch.zeros(batch_size, env.action_space.n).cuda()
             for i in range(args.k):
                 total_q += Qs[i](next_state)
             next_q_values = total_q / args.k
@@ -179,10 +180,10 @@ epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_fi
 losses = []
 all_rewards = []
 frame_done = []
+q_idx = 0
 episode_reward = 0
 
 state = env.reset()
-episode = 0
 for frame_idx in range(1, num_frames + 1):
     epsilon = epsilon_by_frame(frame_idx)
     action = model.act(state, epsilon)
@@ -209,8 +210,11 @@ for frame_idx in range(1, num_frames + 1):
 
     if frame_idx % 1000 == 0:
         if args.average:
-            idx = frame_idx % (args.k)
+            idx = q_idx % (args.k)
+            q_idx += 1
             Qs[idx].load_state_dict(model.state_dict())
+        else:
+            target_model.load_state_dict(model.state_dict())
         
     if frame_idx % 100000 == 0:
         #plot(frame_idx, all_rewards, losses)
