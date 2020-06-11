@@ -95,7 +95,7 @@ def compute_td_loss(batch_size, target, replay_buffer):
             total_q += target[i](next_state)
         next_q_values = total_q / args.k
     else:
-        # normal DQN
+        # vanilla DQN
         next_q_values = target(next_state)
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
