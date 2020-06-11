@@ -97,15 +97,14 @@ class DQN(nn.Module):
     
     def act(self, state, epsilon):
         if random.random() > epsilon:
-            with torch.no_grad():
-                state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0))
+            state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=False)
             q_value = self.forward(state)
             action  = q_value.max(1)[1].data[0]
         else:
             action = random.randrange(env.action_space.n)
         return action
 
-model = DQN(env.observation_space.shape, env.action_space.n)
+model = DQN(env.observation_space.shape, env.action_space.n).train()
 
 if USE_CUDA:
     model = model.cuda()
@@ -113,7 +112,7 @@ if USE_CUDA:
 if args.average:
     Qs = []
     for _ in range(args.k):
-        copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+        copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda().eval()
         copy_model.load_state_dict(model.state_dict())
         Qs.append(copy_model)
 else:
@@ -123,26 +122,23 @@ else:
 def compute_td_loss(batch_size, target):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
-    state      = Variable(torch.FloatTensor(np.float32(state)))
-    with torch.no_grad():
-        next_state = Variable(torch.FloatTensor(np.float32(next_state)))
-    action     = Variable(torch.LongTensor(action))
-    reward     = Variable(torch.FloatTensor(reward))
-    done       = Variable(torch.FloatTensor(done))
+    state      = Variable(torch.FloatTensor(np.float32(state)), requires_grad=False)
+    next_state = Variable(torch.FloatTensor(np.float32(next_state)), requires_grad=False)
+    action     = Variable(torch.LongTensor(action), requires_grad=False)
+    reward     = Variable(torch.FloatTensor(reward), requires_grad=False)
+    done       = Variable(torch.FloatTensor(done), requires_grad=False)
 
     q_values   = model(state)
     
     if args.average:
         # Averaged-DQN
-        with torch.no_grad():
-            total_q = torch.zeros(batch_size, env.action_space.n).cuda()
-            for i in range(args.k):
-                total_q += target[i](next_state)
-            next_q_values = total_q / args.k
+        total_q = torch.zeros(batch_size, env.action_space.n).cuda()
+        for i in range(args.k):
+            total_q += target[i](next_state)
+        next_q_values = total_q / args.k
     else:
         # normal DQN
-        with torch.no_grad():
-            next_q_values = target(next_state)
+        next_q_values = target(next_state)
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
     next_q_value     = next_q_values.max(1)[0]
@@ -222,4 +218,4 @@ for frame_idx in range(1, num_frames + 1):
         np.save('idx.npy', frame_done)
         np.save('reward.npy', all_rewards)
         print(frame_idx)
-        print(np.mean(all_rewards[-10:]))
+        print(np.mean(all_rewards[-100:]))
