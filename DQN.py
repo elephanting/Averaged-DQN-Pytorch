@@ -15,33 +15,10 @@ import torch.autograd as autograd
 import torch.nn.functional as F
 
 import matplotlib.pyplot as plt
-
-# arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--average', action='store_true', help='perform Averaged-DQN')
-parser.add_argument('--k', type=int, default=1, help='if perform Averaged-DQN, average k action values')
-args = parser.parse_args()
-
-num_frames = 1400000
-batch_size = 32
-gamma      = 0.99
-
-# use CUDA
-USE_CUDA = torch.cuda.is_available()
-Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
-
-# Atari Environment
+from collections import deque
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
-env_id = "BreakoutNoFrameskip-v4"
-env    = make_atari(env_id)
-env    = wrap_deepmind(env)
-env    = wrap_pytorch(env)
-
-
 # replay buffer
-from collections import deque
-
 class ReplayBuffer(object):
     def __init__(self, capacity):
         self.buffer = deque(maxlen=capacity)
@@ -58,10 +35,6 @@ class ReplayBuffer(object):
     
     def __len__(self):
         return len(self.buffer)
-
-replay_initial = 10000
-replay_buffer = ReplayBuffer(500000)
-
 
 # Deep Q Network
 class DQN(nn.Module):
@@ -104,22 +77,7 @@ class DQN(nn.Module):
             action = random.randrange(env.action_space.n)
         return action
 
-model = DQN(env.observation_space.shape, env.action_space.n).train()
-
-if USE_CUDA:
-    model = model.cuda()
-
-if args.average:
-    Qs = []
-    for _ in range(args.k):
-        copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda().eval()
-        copy_model.load_state_dict(model.state_dict())
-        Qs.append(copy_model)
-else:
-    target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
-    target_model.load_state_dict(model.state_dict())
-
-def compute_td_loss(batch_size, target):
+def compute_td_loss(batch_size, target, replay_buffer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = Variable(torch.FloatTensor(np.float32(state)), requires_grad=False)
@@ -161,61 +119,148 @@ def plot(frame_idx, rewards, losses):
     plt.title('loss')
     plt.plot(losses)
     #plt.show()
-       
-optimizer = optim.RMSprop(model.parameters(), lr=0.00025, momentum=0.05)
 
-# Epsilon greedy exploration
-epsilon_start = 1.0
-epsilon_final = 0.01
-epsilon_decay = 30000
+if __name__ == '__main__':
+    # arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--average', action='store_true', help='perform Averaged-DQN')
+    parser.add_argument('--k', type=int, default=10, help='if perform Averaged-DQN, average k target action values')
+    parser.add_argument('--resume', action='store_true', help='resume training')
+    parser.add_argument('--path', type=str, help='resume training model path')
+    parser.add_argument('--checkpoint', action='store_true', help='save DQN model every 1 million frames')
 
-epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
+    # hyperparameters, default settings are referd to the Averaged-DQN paper
+    parser.add_argument('--momentum', type=float, default=0.95)
+    parser.add_argument('--lr', type=float, default=0.00025)
+    parser.add_argument('--discount', type=float, default=0.99, help='discount factor')
+    parser.add_argument('--ER', type=int, default=10000000, help='Experience Replay buffer size')
+    parser.add_argument('--update', type=int, default=10000, help='update target network every x frames')
+    parser.add_argument('--batch', type=int, default=32, help='batch size')
+    parser.add_argument('--epsilon', type=int, default=10000000, help='epsilon greedy algo, decreasing linearly from 1 to 0.1 over x steps')
+    parser.add_argument('--total', type=int, default=1000000000, help='total training frames')
+    args = parser.parse_args()
 
-# training
-losses = []
-all_rewards = []
-frame_done = []
-q_idx = 0
-episode_reward = 0
+    num_frames = args.total
+    batch_size = args.batch
+    gamma      = args.discount
 
-state = env.reset()
-for frame_idx in range(1, num_frames + 1):
-    epsilon = epsilon_by_frame(frame_idx)
-    action = model.act(state, epsilon)
-    
-    next_state, reward, done, _ = env.step(action)
-    replay_buffer.push(state, action, reward, next_state, done)
-    
-    state = next_state
-    episode_reward += reward
-    
-    if done:
-        state = env.reset()
-        #env.render()
-        all_rewards.append(episode_reward)
-        frame_done.append(frame_idx)
+    # use CUDA
+    USE_CUDA = torch.cuda.is_available()
+    Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
+
+    # Atari Environment
+    env_id = "BreakoutNoFrameskip-v4"
+    env    = make_atari(env_id)
+    env    = wrap_deepmind(env)
+    env    = wrap_pytorch(env)
+
+    model = DQN(env.observation_space.shape, env.action_space.n)
+    optimizer = optim.RMSprop(model.parameters(), lr=args.lr, momentum=args.momentum)
+
+    if USE_CUDA:
+        model = model.cuda()
+
+    if args.average:
+        Qs = []
+        for _ in range(args.k):
+            copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda().eval()
+            copy_model.load_state_dict(model.state_dict())
+            Qs.append(copy_model)
+    else:
+        target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+        target_model.load_state_dict(model.state_dict())
+
+    if args.resume:
+        checkpoint = torch.load(args.path)
+        if args.average:
+            for i in range(args.k):
+                Qs[i].load_state_dict(checkpoint['Qs'][i])
+        else:
+            # vanilla DQN
+            target_model.load_state_dict(checkpoint['target'])
+        
         episode_reward = 0
-        #if episode % 10 == 0:
-        #    print(episode)
-        
-    if len(replay_buffer) > replay_initial:
-        if args.average:
-            loss = compute_td_loss(batch_size, Qs)
-        else:
-            loss = compute_td_loss(batch_size, target_model)
-        #losses.append(loss.item())
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        start_frame = checkpoint['frame_idx']
+        frame_done = checkpoint['frame_done']
+        q_idx = checkpoint['q_idx']
+        all_rewards = checkpoint['all_rewards']
+    else:
+        # train from scratch
+        all_rewards = []
+        frame_done = []
+        q_idx = 0
+        episode_reward = 0
+        start_frame = 1
 
-    if frame_idx % 10000 == 0:
-        if args.average:
-            idx = q_idx % (args.k)
-            q_idx += 1
-            Qs[idx].load_state_dict(model.state_dict())
-        else:
-            target_model.load_state_dict(model.state_dict())
+    replay_initial = 10000
+    replay_buffer = ReplayBuffer(args.ER)
+    
+    # Epsilon greedy exploration
+    epsilon_start = 1.0
+    epsilon_final = 0.01
+    epsilon_decay = args.epsilon
+
+    epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
+
+    state = env.reset()
+    for frame_idx in range(start_frame, num_frames + 1):
+        epsilon = epsilon_by_frame(frame_idx)
+        action = model.act(state, epsilon)
         
-    if frame_idx % 100000 == 0:
-        #plot(frame_idx, all_rewards, losses)
-        np.save('idx.npy', frame_done)
-        np.save('reward.npy', all_rewards)
-        print(frame_idx)
-        print(np.mean(all_rewards[-100:]))
+        next_state, reward, done, _ = env.step(action)
+        replay_buffer.push(state, action, reward, next_state, done)
+        
+        state = next_state
+        episode_reward += reward
+        
+        if done:
+            state = env.reset()
+            #env.render()
+            all_rewards.append(episode_reward)
+            frame_done.append(frame_idx)
+            episode_reward = 0
+            
+        if len(replay_buffer) > replay_initial:
+            if args.average:
+                loss = compute_td_loss(batch_size, Qs, replay_buffer)
+            else:
+                loss = compute_td_loss(batch_size, target_model, replay_buffer)
+
+        if frame_idx % 10000 == 0:
+            if args.average:
+                idx = q_idx % (args.k)
+                q_idx += 1
+                Qs[idx].load_state_dict(model.state_dict())
+            else:
+                target_model.load_state_dict(model.state_dict())
+            
+            if frame_idx % 100000 == 0:
+                print(frame_idx)
+                print(np.mean(all_rewards[-100:]))
+
+                if args.checkpoint and frame_idx % 500000 == 0:
+                    # save model
+                    if args.average:
+                        # Averaged-DQN model
+                        torch.save({
+                                    'Qs': [Qs[i].state_dict() for i in range(args.k)],
+                                    'model': model.state_dict(),
+                                    'optimizer': optimizer.state_dict(),
+                                    'all_rewards': all_rewards,
+                                    'frame_idx': frame_idx,
+                                    'frame_done': frame_done,
+                                    'q_idx': q_idx                
+                                    }, './model/frame_{}.tar'.format(frame_idx))
+                    else:
+                        # vanilla DQN model
+                        torch.save({
+                                    'target': target_model.state_dict(),
+                                    'model': model.state_dict(),
+                                    'optimizer': optimizer.state_dict(),
+                                    'all_rewards': all_rewards,
+                                    'frame_idx': frame_idx,
+                                    'frame_done': frame_done,
+                                    'q_idx': q_idx                    
+                                    }, './model/frame_{}.tar'.format(frame_idx))
