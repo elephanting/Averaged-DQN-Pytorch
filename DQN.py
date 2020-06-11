@@ -210,7 +210,7 @@ if __name__ == '__main__':
         action = model.act(state, epsilon)
         
         next_state, reward, done, _ = env.step(action)
-        reward = torch.clamp(reward, min=-1, max=1)
+        reward = np.clip(reward, -1, 1)
         replay_buffer.push(state, action, reward, next_state, done)
         
         state = next_state
