@@ -202,11 +202,12 @@ if __name__ == '__main__':
     epsilon_final = 0.01
     epsilon_decay = args.epsilon
 
-    epsilon_by_frame = lambda frame_idx: epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame_idx / epsilon_decay)
+    epsilon_by_frame = lambda frame_idx, replay_start_time: 1 - 0.9*min(replay_start_time, args.epsilon)/args.epsilon
 
     state = env.reset()
     for frame_idx in range(start_frame, num_frames + 1):
-        epsilon = epsilon_by_frame(frame_idx)
+        epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
+        print(epsilon)
         action = model.act(state, epsilon)
         
         next_state, reward, done, _ = env.step(action)
