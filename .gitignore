@@ -1,5 +1,5 @@
-.*tar
-.*pt
-.*pth
+*tar
+*pt
+*pth
 misc/*
 __pycache__
