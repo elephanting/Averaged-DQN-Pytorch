@@ -120,7 +120,7 @@ else:
     target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
     target_model.load_state_dict(model.state_dict())
 
-def compute_td_loss(batch_size):
+def compute_td_loss(batch_size, target):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = Variable(torch.FloatTensor(np.float32(state)))
@@ -137,12 +137,12 @@ def compute_td_loss(batch_size):
         with torch.no_grad():
             total_q = torch.zeros(batch_size, env.action_space.n).cuda()
             for i in range(args.k):
-                total_q += Qs[i](next_state)
+                total_q += target[i](next_state)
             next_q_values = total_q / args.k
     else:
         # normal DQN
         with torch.no_grad():
-            next_q_values = target_model(next_state)
+            next_q_values = target(next_state)
 
     q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
     next_q_value     = next_q_values.max(1)[0]
@@ -166,7 +166,7 @@ def plot(frame_idx, rewards, losses):
     plt.plot(losses)
     #plt.show()
        
-optimizer = optim.RMSprop(model.parameters(), lr=0.00025, momentum=0.95)
+optimizer = optim.RMSprop(model.parameters(), lr=0.00025, momentum=0.05)
 
 # Epsilon greedy exploration
 epsilon_start = 1.0
@@ -203,7 +203,10 @@ for frame_idx in range(1, num_frames + 1):
         #    print(episode)
         
     if len(replay_buffer) > replay_initial:
-        loss = compute_td_loss(batch_size)
+        if args.average:
+            loss = compute_td_loss(batch_size, Qs)
+        else:
+            loss = compute_td_loss(batch_size, target_model)
         #losses.append(loss.item())
 
     if frame_idx % 10000 == 0:
