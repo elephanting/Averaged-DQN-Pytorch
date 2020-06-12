@@ -135,11 +135,11 @@ if __name__ == '__main__':
     parser.add_argument('--momentum', type=float, default=0.95)
     parser.add_argument('--lr', type=float, default=0.00025)
     parser.add_argument('--discount', type=float, default=0.99, help='discount factor')
-    parser.add_argument('--ER', type=int, default=10000000, help='Experience Replay buffer size')
+    parser.add_argument('--ER', type=int, default=1000000, help='Experience Replay buffer size')
     parser.add_argument('--update', type=int, default=10000, help='update target network every x frames')
     parser.add_argument('--batch', type=int, default=32, help='batch size')
-    parser.add_argument('--epsilon', type=int, default=10000000, help='epsilon greedy algo, decreasing linearly from 1 to 0.1 over x steps')
-    parser.add_argument('--total', type=int, default=1000000000, help='total training frames')
+    parser.add_argument('--epsilon', type=int, default=1000000, help='epsilon greedy algo, decreasing linearly from 1 to 0.1 over x steps')
+    parser.add_argument('--total', type=int, default=100000000, help='total training frames')
     args = parser.parse_args()
 
     num_frames = args.total
