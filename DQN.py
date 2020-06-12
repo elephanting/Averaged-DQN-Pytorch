@@ -250,8 +250,9 @@ if __name__ == '__main__':
                 target_model.load_state_dict(model.state_dict())
             
             if frame_idx % 100000 == 0:
-                print(frame_idx)
-                print(np.mean(all_rewards[-100:]))
+                print('frame: {}'.format(frame_idx))
+                print('reward: {}'.format(np.mean(all_rewards[-100:])))
+                print('epsilon:{}'.format(epsilon))
 
                 if args.checkpoint and frame_idx % 500000 == 0:
                     # save model
