@@ -131,7 +131,8 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, help='resume training model path')
     parser.add_argument('--checkpoint', action='store_true', help='save DQN model every 1 million frames')
 
-    # hyperparameters, default settings are referd to the Averaged-DQN paper
+    # hyperparameters, default settings are referd to the Averaged-DQN paper except for the optimizer and learning rate
+    # here I use Adam and 0.00001 lr, the paper use RMSprop and 0.00025 lr
     parser.add_argument('--momentum', type=float, default=0.95)
     parser.add_argument('--lr', type=float, default=0.00001)
     parser.add_argument('--discount', type=float, default=0.99, help='discount factor')
@@ -234,7 +235,7 @@ if __name__ == '__main__':
                 target_model.load_state_dict(model.state_dict())
             
             if frame_idx % 100000 == 0:
-                print('frame: {}, reward: {}, epsilon: {:.2f}'.format(frame_idx, np.mean(all_rewards[100:], epsilon)))
+                print('frame: {}, reward: {}, epsilon: {:.2f}'.format(frame_idx, np.mean(all_rewards[-100:], epsilon)))
 
                 if args.checkpoint and frame_idx % 500000 == 0:
                     # save model
