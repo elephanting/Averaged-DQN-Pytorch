@@ -112,16 +112,6 @@ def compute_td_loss(batch_size, target, replay_buffer, optimizer):
 
     return loss
 
-def plot(frame_idx, rewards, losses):
-    plt.figure(figsize=(20,5))
-    plt.subplot(131)
-    plt.title('frame %s. reward: %s' % (frame_idx, np.mean(rewards[-10:])))
-    plt.plot(rewards)
-    plt.subplot(132)
-    plt.title('loss')
-    plt.plot(losses)
-    #plt.show()
-
 if __name__ == '__main__':
     # arguments
     parser = argparse.ArgumentParser()
@@ -190,7 +180,7 @@ if __name__ == '__main__':
         episode_reward = 0
         start_frame = 1
 
-    replay_initial = 10000
+    replay_initial = 50000
     replay_buffer = ReplayBuffer(args.ER)
     
     # Epsilon greedy exploration
