@@ -146,22 +146,6 @@ if __name__ == '__main__':
     batch_size = args.batch
     gamma      = args.discount
 
-    '''
-    a = torch.Tensor([5])
-    b = torch.Tensor([4])
-    d = torch.Tensor([6])
-    #b.requires_grad = True
-    a.requires_grad = True
-    d.requires_grad = True
-    e = a * d
-    #a.detach()
-    c = a * b
-    print(c.requires_grad)
-    c.backward()
-    print(b.grad.data)
-    '''
-
-
     # Atari Environment
     env_id = "BreakoutNoFrameskip-v4"
     env    = make_atari(env_id)
