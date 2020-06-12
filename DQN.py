@@ -79,7 +79,7 @@ class DQN(nn.Module):
             action = random.randrange(env.action_space.n)
         return action
 
-def compute_td_loss(batch_size, target, replay_buffer):
+def compute_td_loss(batch_size, target, replay_buffer, optimizer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state      = torch.FloatTensor(np.float32(state)).to(device)
@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
     # hyperparameters, default settings are referd to the Averaged-DQN paper
     parser.add_argument('--momentum', type=float, default=0.95)
-    parser.add_argument('--lr', type=float, default=0.00025)
+    parser.add_argument('--lr', type=float, default=0.00001)
     parser.add_argument('--discount', type=float, default=0.99, help='discount factor')
     parser.add_argument('--ER', type=int, default=1000000, help='Experience Replay buffer size')
     parser.add_argument('--update', type=int, default=10000, help='update target network every x frames')
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     env    = wrap_pytorch(env)
 
     model = DQN(env.observation_space.shape, env.action_space.n).to(device).train()
-    optimizer = optim.RMSprop(model.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     if args.average:
         Qs = []
@@ -221,9 +221,9 @@ if __name__ == '__main__':
             
         if len(replay_buffer) > replay_initial:
             if args.average:
-                loss = compute_td_loss(batch_size, Qs, replay_buffer)
+                loss = compute_td_loss(batch_size, Qs, replay_buffer, optimizer)
             else:
-                loss = compute_td_loss(batch_size, target_model, replay_buffer)
+                loss = compute_td_loss(batch_size, target_model, replay_buffer, optimizer)
 
         if frame_idx % 10000 == 0:
             if args.average:
@@ -234,9 +234,7 @@ if __name__ == '__main__':
                 target_model.load_state_dict(model.state_dict())
             
             if frame_idx % 100000 == 0:
-                print('frame: {}'.format(frame_idx))
-                print('reward: {}'.format(np.mean(all_rewards[-100:])))
-                print('epsilon:{}'.format(epsilon))
+                print('frame: {}, reward: {}, epsilon: {:.2f}'.format(frame_idx, np.mean(all_rewards[100:], epsilon)))
 
                 if args.checkpoint and frame_idx % 500000 == 0:
                     # save model
