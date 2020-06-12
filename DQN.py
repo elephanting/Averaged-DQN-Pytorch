@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 from collections import deque
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # replay buffer
 class ReplayBuffer(object):
     def __init__(self, capacity):
@@ -66,11 +68,11 @@ class DQN(nn.Module):
         return x
     
     def feature_size(self):
-        return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
+        return self.features(torch.zeros(1, *self.input_shape)).view(1, -1).size(1)
     
     def act(self, state, epsilon):
         if random.random() > epsilon:
-            state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=False)
+            state   = torch.FloatTensor(np.float32(state)).unsqueeze(0).to(device)
             q_value = self.forward(state)
             action  = q_value.max(1)[1].data[0]
         else:
@@ -80,17 +82,17 @@ class DQN(nn.Module):
 def compute_td_loss(batch_size, target, replay_buffer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
-    state      = Variable(torch.FloatTensor(np.float32(state)), requires_grad=False)
-    next_state = Variable(torch.FloatTensor(np.float32(next_state)), requires_grad=False)
-    action     = Variable(torch.LongTensor(action), requires_grad=False)
-    reward     = Variable(torch.FloatTensor(reward), requires_grad=False)
-    done       = Variable(torch.FloatTensor(done), requires_grad=False)
+    state      = torch.FloatTensor(np.float32(state)).to(device)
+    next_state = torch.FloatTensor(np.float32(next_state)).to(device)
+    action     = torch.LongTensor(action).to(device)
+    reward     = torch.FloatTensor(reward).to(device)
+    done       = torch.FloatTensor(done).to(device)
 
     q_values   = model(state)
     
     if args.average:
         # Averaged-DQN
-        total_q = torch.zeros(batch_size, env.action_space.n).cuda()
+        total_q = torch.zeros(batch_size, env.action_space.n).to(device)
         for i in range(args.k):
             total_q += target[i](next_state)
         next_q_values = total_q / args.k
@@ -102,7 +104,7 @@ def compute_td_loss(batch_size, target, replay_buffer):
     next_q_value     = next_q_values.max(1)[0]
     expected_q_value = reward + gamma * next_q_value * (1 - done)
     
-    loss = (q_value - Variable(expected_q_value.data)).pow(2).mean()
+    loss = (q_value - expected_q_value.data).pow(2).mean()
         
     optimizer.zero_grad()
     loss.backward()
@@ -144,9 +146,21 @@ if __name__ == '__main__':
     batch_size = args.batch
     gamma      = args.discount
 
-    # use CUDA
-    USE_CUDA = torch.cuda.is_available()
-    Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
+    '''
+    a = torch.Tensor([5])
+    b = torch.Tensor([4])
+    d = torch.Tensor([6])
+    #b.requires_grad = True
+    a.requires_grad = True
+    d.requires_grad = True
+    e = a * d
+    #a.detach()
+    c = a * b
+    print(c.requires_grad)
+    c.backward()
+    print(b.grad.data)
+    '''
+
 
     # Atari Environment
     env_id = "BreakoutNoFrameskip-v4"
@@ -154,20 +168,17 @@ if __name__ == '__main__':
     env    = wrap_deepmind(env)
     env    = wrap_pytorch(env)
 
-    model = DQN(env.observation_space.shape, env.action_space.n)
+    model = DQN(env.observation_space.shape, env.action_space.n).to(device).train()
     optimizer = optim.RMSprop(model.parameters(), lr=args.lr, momentum=args.momentum)
-
-    if USE_CUDA:
-        model = model.cuda()
 
     if args.average:
         Qs = []
         for _ in range(args.k):
-            copy_model = DQN(env.observation_space.shape, env.action_space.n).cuda().eval()
+            copy_model = DQN(env.observation_space.shape, env.action_space.n).to(device).eval()
             copy_model.load_state_dict(model.state_dict())
             Qs.append(copy_model)
     else:
-        target_model = DQN(env.observation_space.shape, env.action_space.n).cuda()
+        target_model = DQN(env.observation_space.shape, env.action_space.n).to(device).eval()
         target_model.load_state_dict(model.state_dict())
 
     if args.resume:
@@ -204,8 +215,10 @@ if __name__ == '__main__':
 
     epsilon_by_frame = lambda frame_idx, replay_start_time: 1 - 0.9*min(replay_start_time, args.epsilon)/args.epsilon
 
+    # start training 
     state = env.reset()
     for frame_idx in range(start_frame, num_frames + 1):
+        #env.render()
         epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
         action = model.act(state, epsilon)
         
@@ -218,7 +231,6 @@ if __name__ == '__main__':
         
         if done:
             state = env.reset()
-            #env.render()
             all_rewards.append(episode_reward)
             frame_done.append(frame_idx)
             episode_reward = 0
