@@ -199,7 +199,7 @@ if __name__ == '__main__':
 
     epsilon_by_frame = lambda frame_idx, replay_start_time: 1 - 0.9*min(replay_start_time, args.epsilon)/args.epsilon
 
-    # start training 
+    # start training
     state = env.reset()
     for frame_idx in range(start_frame, num_frames + 1):
         #env.render()
@@ -207,6 +207,7 @@ if __name__ == '__main__':
         action = model.act(state, epsilon)
         
         next_state, reward, done, _ = env.step(action)
+        print(next_state.shape)
         reward = np.clip(reward, -1, 1)
         replay_buffer.push(state, action, reward, next_state, done)
         
