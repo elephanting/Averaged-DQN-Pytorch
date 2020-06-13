@@ -207,7 +207,6 @@ if __name__ == '__main__':
         action = model.act(state, epsilon)
         
         next_state, reward, done, _ = env.step(action)
-        print(next_state.shape)
         reward = np.clip(reward, -1, 1)
         replay_buffer.push(state, action, reward, next_state, done)
         
