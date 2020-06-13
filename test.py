@@ -13,8 +13,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     env_id = "BreakoutNoFrameskip-v4"
-    env    = make_atari(env_id)
-    env    = wrap_deepmind(env)
+    env    = make_atari(env_id, test=True)
+    env    = wrap_deepmind(env, frame_stack=True)
     env    = wrap_pytorch(env)
 
     test = torch.load(args.path)
