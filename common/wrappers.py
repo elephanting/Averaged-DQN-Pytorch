@@ -144,12 +144,8 @@ class WarpFrame(gym.ObservationWrapper):
             shape=(self.height, self.width, 1), dtype=np.uint8)
 
     def observation(self, frame):
-        frame = np.array(list(frame))
-        n_frame = frame.shape[-1] / 3
-        frames = []
-        for i in range(int(n_frame)):
-            frames.append(cv2.cvtColor(frame[:,:,i*3:(i+1)*3], cv2.COLOR_RGB2GRAY))
-        frame = cv2.resize(np.transpose(np.array(frames), (1, 2, 0)), (self.width, self.height), interpolation=cv2.INTER_AREA)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
         return frame[:, :, None]
 
 class FrameStack(gym.Wrapper):
@@ -223,7 +219,6 @@ def make_atari(env_id):
     assert 'NoFrameskip' in env.spec.id
     env = NoopResetEnv(env, noop_max=30)
     #env = MaxAndSkipEnv(env, skip=4)
-    env = FrameStack(env, 4)
     return env
 
 def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, scale=False):
