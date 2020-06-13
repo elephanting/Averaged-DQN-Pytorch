@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
     epsilon_by_frame = lambda frame_idx, replay_start_time: 1 - 0.9*min(replay_start_time, args.epsilon)/args.epsilon
 
-    # start training 
+    # start training
     state = env.reset()
     for frame_idx in range(start_frame, num_frames + 1):
         #env.render()
