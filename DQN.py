@@ -140,7 +140,7 @@ if __name__ == '__main__':
     # Atari Environment
     env_id = "BreakoutNoFrameskip-v4"
     env    = make_atari(env_id)
-    env    = wrap_deepmind(env)
+    env    = wrap_deepmind(env, frame_stack=True)
     env    = wrap_pytorch(env)
 
     model = DQN(env.observation_space.shape, env.action_space.n).to(device).train()
