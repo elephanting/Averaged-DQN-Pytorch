@@ -169,17 +169,16 @@ if __name__ == '__main__':
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         start_frame = checkpoint['frame_idx']
-        frame_done = checkpoint['frame_done']
         q_idx = checkpoint['q_idx']
-        all_rewards = checkpoint['all_rewards']
     else:
         # train from scratch
-        all_rewards = []
-        frame_done = []
         q_idx = 0
         episode_reward = 0
         start_frame = 1
 
+    all_rewards = []
+    frame_done = []
+    
     replay_initial = 50000
     replay_buffer = ReplayBuffer(args.ER)
     
