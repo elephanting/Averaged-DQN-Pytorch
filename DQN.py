@@ -239,6 +239,8 @@ if __name__ == '__main__':
                                     'frame_done': frame_done,
                                     'q_idx': q_idx                
                                     }, './model/frame_{}.tar'.format(frame_idx))
+                        frame_done = []
+                        all_rewards = []
                     else:
                         # vanilla DQN model
                         torch.save({
@@ -250,3 +252,5 @@ if __name__ == '__main__':
                                     'frame_done': frame_done,
                                     'q_idx': q_idx                    
                                     }, './model/frame_{}.tar'.format(frame_idx))
+                        frame_done = []
+                        all_rewards = []
