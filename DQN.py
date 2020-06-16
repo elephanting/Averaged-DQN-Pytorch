@@ -73,8 +73,9 @@ class DQN(nn.Module):
     def act(self, state, epsilon):
         if random.random() > epsilon:
             state   = torch.FloatTensor(np.float32(state)).unsqueeze(0).to(device)
-            q_value = self.forward(state)
-            action  = q_value.max(1)[1].data[0]
+            with torch.no_grad():
+                q_value = self.forward(state)
+            action  = int(q_value.max(1)[1].data[0])
         else:
             action = random.randrange(env.action_space.n)
         return action
@@ -198,6 +199,7 @@ if __name__ == '__main__':
         #env.render()
         epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
         action = model.act(state, epsilon)
+        print(type(action))
         
         next_state, reward, done, _ = env.step(action)
         reward = np.clip(reward, -1, 1)
