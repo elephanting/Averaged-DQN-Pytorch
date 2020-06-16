@@ -120,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', help='resume training')
     parser.add_argument('--path', type=str, help='resume training model path')
     parser.add_argument('--checkpoint', action='store_true', help='save DQN model every 1 million frames')
+    parser.add_argument('--replay', type=str, help='experience replay buffer model path')
 
     # hyperparameters, default settings are referd to the Averaged-DQN paper except for the optimizer and learning rate
     # here I use Adam and 0.00001 lr, the paper use RMSprop and 0.00025 lr
@@ -158,6 +159,7 @@ if __name__ == '__main__':
 
     if args.resume:
         checkpoint = torch.load(args.path)
+        replay_path = torch.olad(args.replay)
         if args.average:
             for i in range(args.k):
                 Qs[i].load_state_dict(checkpoint['Qs'][i])
@@ -170,17 +172,18 @@ if __name__ == '__main__':
         optimizer.load_state_dict(checkpoint['optimizer'])
         start_frame = checkpoint['frame_idx']
         q_idx = checkpoint['q_idx']
+        replay_initial = 0
+        replay_buffer = replay['replay']
     else:
         # train from scratch
         q_idx = 0
         episode_reward = 0
         start_frame = 1
+        replay_initial = 50000
+        replay_buffer = ReplayBuffer(args.ER)
 
     all_rewards = []
     frame_done = []
-    
-    replay_initial = 50000
-    replay_buffer = ReplayBuffer(args.ER)
     
     # Epsilon greedy exploration
     epsilon_start = 1.0
@@ -195,6 +198,7 @@ if __name__ == '__main__':
         #env.render()
         epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
         action = model.act(state, epsilon)
+        print(type(action))
         
         next_state, reward, done, _ = env.step(action)
         reward = np.clip(reward, -1, 1)
@@ -239,8 +243,6 @@ if __name__ == '__main__':
                                     'frame_done': frame_done,
                                     'q_idx': q_idx                
                                     }, './model/frame_{}.tar'.format(frame_idx))
-                        frame_done = []
-                        all_rewards = []
                     else:
                         # vanilla DQN model
                         torch.save({
@@ -252,5 +254,8 @@ if __name__ == '__main__':
                                     'frame_done': frame_done,
                                     'q_idx': q_idx                    
                                     }, './model/frame_{}.tar'.format(frame_idx))
-                        frame_done = []
-                        all_rewards = []
+                    frame_done = []
+                    all_rewards = []
+                    
+                    # save ER buffer
+                    torch.save({'replay': replay_buffer}, './model/replay_{}.tar'.format(frame_idx))
