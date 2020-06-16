@@ -199,7 +199,6 @@ if __name__ == '__main__':
         #env.render()
         epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
         action = model.act(state, epsilon)
-        print(type(action))
         
         next_state, reward, done, _ = env.step(action)
         reward = np.clip(reward, -1, 1)
