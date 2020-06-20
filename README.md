@@ -28,7 +28,7 @@ python DQN.py --checkpoint --k 10 --ddqn
 ```
 For resume training:
 ```sh
-python DQN.py --checkpoint --k 10 --resume --model model/epoch_10.tar
+python DQN.py --checkpoint --k 10 --resume --model model/weight.tar
 ```
 ## Arguments
 | Argument      | Description   |
