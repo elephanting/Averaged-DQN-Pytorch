@@ -121,7 +121,7 @@ def main():
     parser.add_argument('--test_only', action='store_true')
     parser.add_argument('--test_steps', type=int, default=500000)
     parser.add_argument('--render', action='store_true')
-    parser.add_argument('--test_epsilon', default=0, type=float)
+    parser.add_argument('--test_epsilon', default=0.05, type=float)
     # average
     parser.add_argument('-k', '--k', type=int, default=1, help='number of average target network, if k = 1, perform vanilla DQN')
     # resume training
