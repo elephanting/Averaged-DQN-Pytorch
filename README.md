@@ -2,8 +2,6 @@
 Paper: [Averaged-DQN: Variance Reduction and Stabilization
 for Deep Reinforcement Learning](https://arxiv.org/pdf/1611.01929.pdf)
 
-The code is copied/apdated from https://github.com/higgsfield/RL-Adventure/blob/master/1.dqn.ipynb
-
 ## Installation
 
 ubuntu16.04:
@@ -13,7 +11,7 @@ conda env create -f environment.yml
 ## Usage
 First activate virtual environment
 ```sh
-conda activate gym_env
+conda activate gym
 ```
 #### Examples:
 For vanilla DQN training:
@@ -22,13 +20,17 @@ python DQN.py --checkpoint
 ```
 For averaged-DQN training:
 ```sh
-python DQN.py --checkpoint --average --k 10
+python DQN.py --checkpoint --k 10
+```
+For averaged-DDQN training:
+```sh
+python DQN.py --checkpoint --k 10 --ddqn
 ```
 ## Arguments
 | Argument      | Description   |
 | ------------- | ------------- |
-| --checkpoint  | save DQN model every 1 million frames  |
-| --average     | perform averaged-DQN training  |
-| --k           | average k Q values |
+| --checkpoint  | save DQN model every epoch  |
+| --k           | average k Q values, k = 1 is equal to vanilla DQN |
+| --ddqn        | perform Double-DQN |
 | --resume      | resume training |
-| --path        | model path used in resume training |
+| --model        | model path used in resume training |
