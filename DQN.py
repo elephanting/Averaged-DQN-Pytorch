@@ -1,261 +1,150 @@
 """
-    This file is copied/apdated from https://github.com/higgsfield/RL-Adventure/blob/master/1.dqn.ipynb
+    This file is copied/apdated from 2020 NCTU DLP assignment
 """
-
-import math, random
+__author__ = 'chengscott and elephanting'
+import argparse
+import random
+import time
 
 import gym
+from gym.wrappers.frame_stack import FrameStack
+from gym.wrappers.atari_preprocessing import AtariPreprocessing
 import numpy as np
-import argparse
-
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torch.autograd as autograd 
-import torch.nn.functional as F
+#from torch.utils.tensorboard import SummaryWriter
 
-import matplotlib.pyplot as plt
-from collections import deque
-from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
+from model import DQN
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# replay buffer
-class ReplayBuffer(object):
-    def __init__(self, capacity):
-        self.buffer = deque(maxlen=capacity)
-    
-    def push(self, state, action, reward, next_state, done):
-        state      = np.expand_dims(state, 0)
-        next_state = np.expand_dims(next_state, 0)
-            
-        self.buffer.append((state, action, reward, next_state, done))
-    
-    def sample(self, batch_size):
-        state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
-        return np.concatenate(state), action, reward, np.concatenate(next_state), done
-    
-    def __len__(self):
-        return len(self.buffer)
-
-# Deep Q Network
-class DQN(nn.Module):
-    def __init__(self, input_shape, num_actions):
-        super(DQN, self).__init__()
-        
-        self.input_shape = input_shape
-        self.num_actions = num_actions
-        
-        self.features = nn.Sequential(
-            nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.ReLU()
-        )
-        
-        self.fc = nn.Sequential(
-            nn.Linear(self.feature_size(), 512),
-            nn.ReLU(),
-            nn.Linear(512, self.num_actions)
-        )
-        
-    def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
-    
-    def feature_size(self):
-        return self.features(torch.zeros(1, *self.input_shape)).view(1, -1).size(1)
-    
-    def act(self, state, epsilon):
-        if random.random() > epsilon:
-            state   = torch.FloatTensor(np.float32(state)).unsqueeze(0).to(device)
-            with torch.no_grad():
-                q_value = self.forward(state)
-            action  = int(q_value.max(1)[1].data[0])
-        else:
-            action = random.randrange(env.action_space.n)
-        return action
-
-def compute_td_loss(batch_size, target, replay_buffer, optimizer):
-    state, action, reward, next_state, done = replay_buffer.sample(batch_size)
-
-    state      = torch.FloatTensor(np.float32(state)).to(device)
-    next_state = torch.FloatTensor(np.float32(next_state)).to(device)
-    action     = torch.LongTensor(action).to(device)
-    reward     = torch.FloatTensor(reward).to(device)
-    done       = torch.FloatTensor(done).to(device)
-
-    q_values   = model(state)
-    
-    if args.average:
-        # Averaged-DQN
-        total_q = torch.zeros(batch_size, env.action_space.n).to(device)
-        for i in range(args.k):
-            total_q += target[i](next_state)
-        next_q_values = total_q / args.k
-    else:
-        # vanilla DQN
-        next_q_values = target(next_state)
-
-    q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-    next_q_value     = next_q_values.max(1)[0]
-    expected_q_value = reward + gamma * next_q_value * (1 - done)
-    
-    loss = (q_value - expected_q_value.data).pow(2).mean()
-        
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    return loss
-
-if __name__ == '__main__':
-    # arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--average', action='store_true', help='perform Averaged-DQN')
-    parser.add_argument('--k', type=int, default=10, help='if perform Averaged-DQN, average k target action values')
-    parser.add_argument('--resume', action='store_true', help='resume training')
-    parser.add_argument('--path', type=str, help='resume training model path')
-    parser.add_argument('--checkpoint', action='store_true', help='save DQN model every 1 million frames')
-    parser.add_argument('--replay', type=str, help='experience replay buffer model path')
-
-    # hyperparameters, default settings are referd to the Averaged-DQN paper except for the optimizer and learning rate
-    # here I use Adam and 0.00001 lr, the paper use RMSprop and 0.00025 lr
-    parser.add_argument('--momentum', type=float, default=0.95)
-    parser.add_argument('--lr', type=float, default=0.00001)
-    parser.add_argument('--discount', type=float, default=0.99, help='discount factor')
-    parser.add_argument('--ER', type=int, default=1000000, help='Experience Replay buffer size')
-    parser.add_argument('--update', type=int, default=10000, help='update target network every x frames')
-    parser.add_argument('--batch', type=int, default=32, help='batch size')
-    parser.add_argument('--epsilon', type=int, default=1000000, help='epsilon greedy algo, decreasing linearly from 1 to 0.1 over x steps')
-    parser.add_argument('--total', type=int, default=100000000, help='total training frames')
-    args = parser.parse_args()
-
-    num_frames = args.total
-    batch_size = args.batch
-    gamma      = args.discount
-
-    # Atari Environment
-    env_id = "BreakoutNoFrameskip-v4"
-    env    = make_atari(env_id)
-    env    = wrap_deepmind(env, frame_stack=True)
-    env    = wrap_pytorch(env)
-
-    model = DQN(env.observation_space.shape, env.action_space.n).to(device).train()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-
-    if args.average:
-        Qs = []
-        for _ in range(args.k):
-            copy_model = DQN(env.observation_space.shape, env.action_space.n).to(device).eval()
-            copy_model.load_state_dict(model.state_dict())
-            Qs.append(copy_model)
-    else:
-        target_model = DQN(env.observation_space.shape, env.action_space.n).to(device).eval()
-        target_model.load_state_dict(model.state_dict())
+def train(args, env, agent, writer=None):
+    action_space = env.action_space
+    total_steps = 0
+    start_epoch = 1
+    replay_initial = args.warmup
+    epsilon_by_steps = lambda steps, replay_start_time: 1 - 0.9 * min(replay_start_time, args.epsilon)/args.epsilon
 
     if args.resume:
-        checkpoint = torch.load(args.path)
-        replay_path = torch.olad(args.replay)
-        if args.average:
-            for i in range(args.k):
-                Qs[i].load_state_dict(checkpoint['Qs'][i])
-        else:
-            # vanilla DQN
-            target_model.load_state_dict(checkpoint['target'])
+        if args.model is None:
+            raise NameError('Please input model path')
+        agent.load(args.model)
+        total_steps = agent.total_steps
+        start_epoch = agent.epoch + 1
+
+    for epoch in range(start_epoch, args.epochs+1):
+        print('Start Training')
+        total_reward = 0
+        state = env.reset()
+        rewards = []
+
+        for t in range(1, args.steps+1):
+            # select action
+            epsilon = epsilon_by_steps(total_steps, max([total_steps-replay_initial, 0]))
+            action = agent.select_action(state, epsilon, action_space)
+            # execute action
+            next_state, reward, done, _ = env.step(action)
+            
+            # clip reward
+            reward = np.clip(reward, -1, 1)
+            
+            # store transition
+            agent.append(state, action, reward, next_state, done)
+            if total_steps >= args.warmup:
+                agent.update(total_steps)
+
+            state = next_state
+            total_reward += reward
+            total_steps += 1
+            if done:
+                #writer.add_scalar('Train/Episode Reward', total_reward, total_steps)
+                state = env.reset()
+                rewards.append(total_reward)
+                total_reward = 0
+
+            if t % 10000 == 0:
+                print('epoch: {}, total steps: {}, average reward: {:.2f}, epsilon: {:.2f}'.format(epoch, total_steps, np.mean(rewards[-100:]), epsilon))
+                rewards = []            
         
-        episode_reward = 0
-        model.load_state_dict(checkpoint['model'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        start_frame = checkpoint['frame_idx']
-        q_idx = checkpoint['q_idx']
-        replay_initial = 0
-        replay_buffer = replay['replay']
-    else:
-        # train from scratch
-        q_idx = 0
-        episode_reward = 0
-        start_frame = 1
-        replay_initial = 50000
-        replay_buffer = ReplayBuffer(args.ER)
+        if args.checkpoint:
+            agent.epoch = epoch
+            agent.total_steps = total_steps
+            agent.save('model/epoch_{}.tar'.format(epoch))
 
-    all_rewards = []
-    frame_done = []
-    
-    # Epsilon greedy exploration
-    epsilon_start = 1.0
-    epsilon_final = 0.01
-    epsilon_decay = args.epsilon
+        test(args, env, agent, epoch, writer)
+    env.close()
 
-    epsilon_by_frame = lambda frame_idx, replay_start_time: 1 - 0.9*min(replay_start_time, args.epsilon)/args.epsilon
 
-    # start training
+def test(args, env, agent, epoch, writer):
+    print('Start Testing')
+    action_space = env.action_space
+    rewards = []
+    total_reward = 0
     state = env.reset()
-    for frame_idx in range(start_frame, num_frames + 1):
-        #env.render()
-        epsilon = epsilon_by_frame(frame_idx, max([frame_idx-replay_initial, 0]))
-        action = model.act(state, epsilon)
-        
+    for step in range(args.test_steps):
+        if args.render:
+            env.render()
+        action = agent.select_action(state, args.test_epsilon, action_space)
         next_state, reward, done, _ = env.step(action)
-        reward = np.clip(reward, -1, 1)
-        replay_buffer.push(state, action, reward, next_state, done)
-        
+        total_reward += reward
         state = next_state
-        episode_reward += reward
-        
+    
         if done:
+            #writer.add_scalar('Test/Episode Reward', total_reward, step)
+            rewards.append(total_reward)
+            total_reward = 0
             state = env.reset()
-            all_rewards.append(episode_reward)
-            frame_done.append(frame_idx)
-            episode_reward = 0
-            
-        if len(replay_buffer) > replay_initial:
-            if args.average:
-                loss = compute_td_loss(batch_size, Qs, replay_buffer, optimizer)
-            else:
-                loss = compute_td_loss(batch_size, target_model, replay_buffer, optimizer)
+    
+    print('Average Testing Reward:', np.mean(rewards))
+    np.save('result/test_{}.npy'.format(epoch), rewards)
+    env.close()
 
-        if frame_idx % 10000 == 0:
-            if args.average:
-                idx = q_idx % (args.k)
-                q_idx += 1
-                Qs[idx].load_state_dict(model.state_dict())
-            else:
-                target_model.load_state_dict(model.state_dict())
-            
-            if frame_idx % 100000 == 0:
-                print('frame: {}, reward: {}, epsilon: {:.2f}'.format(frame_idx, np.mean(all_rewards[-100:]), epsilon))
 
-                if args.checkpoint and frame_idx % 500000 == 0:
-                    # save model
-                    if args.average:
-                        # Averaged-DQN model
-                        torch.save({
-                                    'Qs': [Qs[i].state_dict() for i in range(args.k)],
-                                    'model': model.state_dict(),
-                                    'optimizer': optimizer.state_dict(),
-                                    'all_rewards': all_rewards,
-                                    'frame_idx': frame_idx,
-                                    'frame_done': frame_done,
-                                    'q_idx': q_idx                
-                                    }, './model/frame_{}.tar'.format(frame_idx))
-                    else:
-                        # vanilla DQN model
-                        torch.save({
-                                    'target': target_model.state_dict(),
-                                    'model': model.state_dict(),
-                                    'optimizer': optimizer.state_dict(),
-                                    'all_rewards': all_rewards,
-                                    'frame_idx': frame_idx,
-                                    'frame_done': frame_done,
-                                    'q_idx': q_idx                    
-                                    }, './model/frame_{}.tar'.format(frame_idx))
-                    frame_done = []
-                    all_rewards = []
-                    
-                    # save ER buffer
-                    torch.save({'replay': replay_buffer}, './model/replay_{}.tar'.format(frame_idx))
+def main():
+    ## arguments ##
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-d', '--device', default='cuda')
+    parser.add_argument('--checkpoint', action='store_true', help='save model every epoch')
+    parser.add_argument('--logdir', default='log/dqn')
+    # train
+    parser.add_argument('--warmup', default=10000, type=int)
+    parser.add_argument('--epochs', default=1200, type=int)
+    parser.add_argument('--steps', default=1000000, type=int, help='steps per epoch')
+    parser.add_argument('--capacity', default=400000, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument('--lr', default=0.00025, type=float)
+    parser.add_argument('--momentum', default=0.95, type=float)
+    parser.add_argument('--epsilon', default=1000000, type=int, help='decay steps from eps_max to eps_min')
+    parser.add_argument('--eps_min', default=.1, type=float)
+    parser.add_argument('--gamma', default=.99, type=float)
+    parser.add_argument('--freq', default=4, type=int)
+    parser.add_argument('--target_freq', default=10000, type=int)
+    # test
+    parser.add_argument('--test_only', action='store_true')
+    parser.add_argument('--test_steps', type=int, default=500000)
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--test_epsilon', default=0, type=float)
+    # average
+    parser.add_argument('-k', '--k', type=int, default=1, help='number of average target network, if k = 1, perform vanilla DQN')
+    # resume training
+    parser.add_argument('--resume', action='store_true', help='resume training')
+    parser.add_argument('-m', '--model', default=None, help='model path')
+    # DDQN
+    parser.add_argument('--ddqn', action='store_true', help='perform Double-DQN')
+
+    args = parser.parse_args()
+
+    ## main ##
+    env = gym.make('BreakoutNoFrameskip-v4')
+    
+    # frame stack and preprocessing
+    env = AtariPreprocessing(env, noop_max=30, frame_skip=4)
+    env = FrameStack(env, 4)
+
+    agent = DQN(args, env)
+    #writer = SummaryWriter(args.logdir)
+    if not args.test_only:
+        train(args, env, agent)
+        agent.save(args.model)
+
+
+if __name__ == '__main__':
+    main()
