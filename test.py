@@ -2,34 +2,40 @@ import torch
 import gym
 import argparse
 
-from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
-from DQN import DQN, device
+from model import DQN
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('path', type=str, help='path of input test weight')
     parser.add_argument('--rounds', type=int, default=3, help='play x rounds')
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--test_epsilon', default=0, type=float)
     args = parser.parse_args()
 
-    env_id = "BreakoutNoFrameskip-v4"
-    env    = make_atari(env_id, test=True)
-    env    = wrap_deepmind(env, frame_stack=True)
-    env    = wrap_pytorch(env)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    env = gym.make('BreakoutNoFrameskip-v4')
+    
+    # frame stack and preprocessing
+    env = AtariPreprocessing(env, noop_max=30, frame_skip=4)
+    env = FrameStack(env, 4)
 
-    test = torch.load(args.path)
     model = DQN(env.observation_space.shape, env.action_space.n).to(device).eval()
-    model.load_state_dict(test['model'])
+    model.load(args.path, test=True)
 
     # play three rounds
     for i in range(args.rounds):
         done = False
+        total_reward = 0
         state = env.reset()
         
         while not done:
-            env.render()
-            action = model.act(state, 0)
+            if args.render:
+                env.render()
+            action = model.select_action(state, args.test_epsilon, action_space)
             next_state, reward, done, _ = env.step(action)
             state = next_state
+            total_reward += reward
             if done:
+                print(total_reward)
                 break

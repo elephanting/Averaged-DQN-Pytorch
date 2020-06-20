@@ -160,7 +160,7 @@ class DQN:
             }, model_path)
         self._memory.save(self.epoch)
 
-    def load(self, model_path):
+    def load(self, model_path, test=False):
         model = torch.load(model_path)
         self._behavior_net.load_state_dict(model['behavior_net'])
         self._optimizer.load_state_dict(model['optimizer'])
@@ -172,4 +172,6 @@ class DQN:
             self.idx = model['idx']
         else:
             self._target_net.load_state_dict(model['target_net'])
-        self._memory.load(self.epoch)
+        
+        if test is False:
+            self._memory.load(self.epoch)
