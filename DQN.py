@@ -66,13 +66,14 @@ def train(args, env, agent, writer=None):
             agent.epoch = epoch
             agent.total_steps = total_steps
             agent.save('model/epoch_{}.tar'.format(epoch))
-
+        
+        # every test need about 30 mins
         test(args, env, agent, epoch, writer)
     env.close()
 
 
 def test(args, env, agent, epoch, writer):
-    print('Start Testing')
+    print('Start Testing, every test need about 30 mins')
     action_space = env.action_space
     rewards = []
     total_reward = 0
