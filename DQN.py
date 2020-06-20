@@ -100,13 +100,13 @@ def main():
     ## arguments ##
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-d', '--device', default='cuda')
-    parser.add_argument('--checkpoint', action='store_true', help='save model every epoch')
+    parser.add_argument('--checkpoint', action='store_true', help='save model every epoch, ER buffer will only be saved as one file')
     parser.add_argument('--logdir', default='log/dqn')
     # train
     parser.add_argument('--warmup', default=10000, type=int)
     parser.add_argument('--epochs', default=1200, type=int)
     parser.add_argument('--steps', default=1000000, type=int, help='steps per epoch')
-    parser.add_argument('--capacity', default=400000, type=int)
+    parser.add_argument('--capacity', default=1000000, type=int)
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--lr', default=0.00025, type=float)
     parser.add_argument('--momentum', default=0.95, type=float)

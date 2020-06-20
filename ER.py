@@ -31,10 +31,10 @@ class ReplayMemory:
 
     def save(self, epoch):
         print('Saving ER buffer...')
-        with open('model/buffer_{}'.format(epoch), 'wb') as f:
+        with open('model/buffer', 'wb') as f:
             pickle.dump(self.buffer, f)
 
     def load(self, epoch):
         print('Loading ER buffer...')
-        with open('model/buffer_{}'.format(epoch), 'rb') as f:
+        with open('model/buffer', 'rb') as f:
             self.buffer = pickle.load(f)
