@@ -65,7 +65,7 @@ def train(args, env, agent, writer=None):
         if args.checkpoint:
             agent.epoch = epoch
             agent.total_steps = total_steps
-            agent.save('model/epoch_{}.tar'.format(epoch))
+            agent.save('model/weight.tar')
         
         # every test need about 30 mins
         test(args, env, agent, epoch, writer)

@@ -86,8 +86,12 @@ class DQN:
         self._memory.append(state, action, reward, next_state, done)
 
     def update(self, total_steps):
-        if total_steps % self.freq == 0:            
-            self._update_behavior_network(self.gamma)            
+        
+        if total_steps % self.freq == 0:
+                      
+            self._update_behavior_network(self.gamma)
+            
+                  
         if total_steps % self.target_freq == 0:
             self._update_target_network()
             self.idx += 1
@@ -174,3 +178,4 @@ class DQN:
         
         if test is False:
             self._memory.load(self.epoch)
+        print('Resume training from epoch: {}'.format(self.epoch+1))
