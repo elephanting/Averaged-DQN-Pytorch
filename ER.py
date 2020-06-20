@@ -1,6 +1,7 @@
 from collections import deque
 import random
 import torch
+import numpy as np
 import pickle
 
 class ReplayMemory:
@@ -14,13 +15,21 @@ class ReplayMemory:
 
     def append(self, state, action, reward, next_state, done):
         # (state, action, reward, next_state, done)
+        state = np.array(state)
+        next_state = np.array(next_state)
         self.buffer.append((state, [action], [reward], next_state, [done]))
 
     def sample(self, batch_size, device):
         '''sample a batch of transition tensors'''
-        transitions = random.sample(self.buffer, batch_size)
-        return (torch.tensor(x, dtype=torch.float, device=device)
-                for x in zip(*transitions))
+        state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
+        
+        state = torch.FloatTensor(np.float32(state)).to(device)
+        action = torch.LongTensor(action).to(device)
+        next_state = torch.FloatTensor(np.float32(next_state)).to(device)
+        reward = torch.FloatTensor(reward).to(device)
+        done = torch.FloatTensor(done).to(device)
+        
+        return state, action, reward, next_state, done
 
     def save(self, epoch):
         print('Saving ER buffer...')

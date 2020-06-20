@@ -4,8 +4,6 @@
 __author__ = 'chengscott and elephanting'
 import argparse
 import random
-import time
-
 import gym
 from gym.wrappers.frame_stack import FrameStack
 from gym.wrappers.atari_preprocessing import AtariPreprocessing

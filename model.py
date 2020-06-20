@@ -36,7 +36,6 @@ class Net(nn.Module):
     def feature_size(self):
         return self.features(torch.zeros(1, *self.input_shape)).view(1, -1).size(1)
 
-
 class DQN:
     def __init__(self, args, env):
         self._behavior_net = Net(env.observation_space.shape, env.action_space.n).to(args.device)
@@ -84,11 +83,11 @@ class DQN:
         return action
 
     def append(self, state, action, reward, next_state, done):
-        self._memory.append(state, action, reward, next_state, int(done))
+        self._memory.append(state, action, reward, next_state, done)
 
     def update(self, total_steps):
-        if total_steps % self.freq == 0:
-            self._update_behavior_network(self.gamma)
+        if total_steps % self.freq == 0:            
+            self._update_behavior_network(self.gamma)            
         if total_steps % self.target_freq == 0:
             self._update_target_network()
             self.idx += 1
@@ -97,7 +96,7 @@ class DQN:
         # sample a minibatch of transitions
         state, action, reward, next_state, done = self._memory.sample(
             self.batch_size, self.device)
-
+        
         q_value = self._behavior_net(state)
         q_value = torch.gather(q_value, dim=1, index=action.long())
         with torch.no_grad():
@@ -125,18 +124,18 @@ class DQN:
                 q_target = reward + gamma * q_next * (1 - done)
         loss = self.criterion(q_value, q_target)
 
-        # optimize
+        # optimize        
         self._optimizer.zero_grad()
         loss.backward()
         #nn.utils.clip_grad_norm_(self._behavior_net.parameters(), 5)
         self._optimizer.step()
-
+        
     def _update_target_network(self):
-        '''update target network by copying from behavior network'''
+        '''update target network by copying from behavior network'''        
         if self.k > 1:
             self._target_net[self.idx % self.k].load_state_dict(self._behavior_net.state_dict())
         else:
-            self._target_net.load_state_dict(self._behavior_net.state_dict())
+            self._target_net.load_state_dict(self._behavior_net.state_dict())        
 
     def save(self, model_path):
         if self.k > 1:
