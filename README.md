@@ -26,9 +26,9 @@ For averaged-DDQN training:
 ```sh
 python DQN.py --checkpoint --k 10 --ddqn
 ```
-For resume training
+For resume training:
 ```sh
-python DQN.py --checkpoint --k 10 --resume --model result/epoch_10.tar
+python DQN.py --checkpoint --k 10 --resume --model model/epoch_10.tar
 ```
 ## Arguments
 | Argument      | Description   |
