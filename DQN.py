@@ -58,7 +58,7 @@ def train(args, env, agent, writer=None):
                 rewards.append(total_reward)
                 total_reward = 0
 
-            if t % 10000 == 0:
+            if t % 100000 == 0:
                 print('epoch: {}, total steps: {}, average reward: {:.2f}, epsilon: {:.2f}'.format(epoch, total_steps, np.mean(rewards[-100:]), epsilon))
                 rewards = []            
         
