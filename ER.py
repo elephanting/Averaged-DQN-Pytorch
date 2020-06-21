@@ -32,7 +32,7 @@ class ReplayMemory:
     def save(self, epoch):
         print('Saving ER buffer...')
         with open('model/buffer', 'wb') as f:
-            pickle.dump(self.buffer, f)
+            pickle.dump(self.buffer, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load(self, epoch):
         print('Loading ER buffer...')
