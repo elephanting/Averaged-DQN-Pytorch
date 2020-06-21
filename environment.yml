@@ -12,7 +12,7 @@ dependencies:
   - brotlipy=0.7.0
   - bzip2=1.0.8
   - c-ares=1.15.0
-  - ca-certificates=2020.4.5.2
+  - ca-certificates=2020.1.1
   - cachetools=4.1.0
   - cairo=1.16.0
   - certifi=2020.4.5.2
@@ -109,6 +109,7 @@ dependencies:
   - sqlite=3.31.1
   - tensorboard=2.1.1
   - tk=8.6.10
+  - tqdm=4.46.1
   - urllib3=1.25.9
   - werkzeug=1.0.1
   - wheel=0.34.2
@@ -135,5 +136,5 @@ dependencies:
     - gym==0.17.2
     - pyglet==1.5.0
     - scipy==1.4.1
-prefix: /home/lab617/.conda/envs/gym
+prefix: /home/lab617/anaconda3/envs/gym
 
