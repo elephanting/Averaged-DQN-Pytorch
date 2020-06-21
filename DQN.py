@@ -3,6 +3,7 @@
 """
 __author__ = 'chengscott and elephanting'
 import argparse
+from tqdm import tqdm
 import random
 import gym
 from gym.wrappers.frame_stack import FrameStack
@@ -34,7 +35,7 @@ def train(args, env, agent, writer=None):
         state = env.reset()
         rewards = []
 
-        for t in range(1, args.steps+1):
+        for t in tqdm(range(1, args.steps+1)):
             # select action
             epsilon = epsilon_by_steps(total_steps, max([total_steps-replay_initial, 0]))
             action = agent.select_action(state, epsilon, action_space)
@@ -73,12 +74,15 @@ def train(args, env, agent, writer=None):
 
 
 def test(args, env, agent, epoch, writer):
-    print('Start Testing, every test need about 30 mins')
+    print('Start Testing, every test needs about 30 mins')
     action_space = env.action_space
     rewards = []
     total_reward = 0
     state = env.reset()
-    for step in range(args.test_steps):
+
+    mean_q_val = agent.get_mean_q_val()
+
+    for step in tqdm(range(args.test_steps)):
         if args.render:
             env.render()
         action = agent.select_action(state, args.test_epsilon, action_space)
@@ -92,7 +96,11 @@ def test(args, env, agent, epoch, writer):
             total_reward = 0
             state = env.reset()
     
+    # last element of rewards is mean Q value
+    rewards.append(mean_q_val)
+
     print('Average Testing Reward:', np.mean(rewards))
+    print('Average Q value: {:.2f}'.format(mean_q_val))
     np.save('result/test_{}.npy'.format(epoch), rewards)
     env.close()
 
@@ -109,7 +117,7 @@ def main():
     parser.add_argument('--steps', default=1000000, type=int, help='steps per epoch')
     parser.add_argument('--capacity', default=1000000, type=int)
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--lr', default=0.00025, type=float)
+    parser.add_argument('--lr', default=0.00001, type=float)
     parser.add_argument('--momentum', default=0.95, type=float)
     parser.add_argument('--epsilon', default=1000000, type=int, help='decay steps from eps_max to eps_min')
     parser.add_argument('--eps_min', default=.1, type=float)

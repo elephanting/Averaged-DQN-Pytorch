@@ -52,7 +52,7 @@ class DQN:
                 self._target_net[i].load_state_dict(self._behavior_net.state_dict())
         else:
             self._target_net.load_state_dict(self._behavior_net.state_dict())
-        self._optimizer = torch.optim.RMSprop(self._behavior_net.parameters(), lr=args.lr, momentum=args.momentum)
+        self._optimizer = torch.optim.Adam(self._behavior_net.parameters(), lr=args.lr)
         # memory
         self._memory = ReplayMemory(capacity=args.capacity)
 
@@ -81,6 +81,14 @@ class DQN:
                 q_value = self._behavior_net(torch.Tensor(state).unsqueeze(0).to(self.device))
                 action = int(torch.argmax(q_value))
         return action
+
+    def get_mean_q_val(self, batch=1000):
+        state, action, reward, next_state, done = self._memory.sample(batch, self.device)
+
+        with torch.no_grad():
+            q_value = self._behavior_net(state)
+            mean_q_value = np.mean(torch.max(q_value, dim=1).values.cpu().numpy())
+            return mean_q_value
 
     def append(self, state, action, reward, next_state, done):
         self._memory.append(state, action, reward, next_state, done)
@@ -178,4 +186,4 @@ class DQN:
         
         if test is False:
             self._memory.load(self.epoch)
-        print('Resume training from epoch: {}'.format(self.epoch+1))
+            print('Resume training from epoch: {}'.format(self.epoch+1))
