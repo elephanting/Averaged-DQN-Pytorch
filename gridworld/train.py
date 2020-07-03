@@ -25,7 +25,7 @@ def train(args, env, agent, writer=None):
     for epoch in range(start_epoch, args.epochs+1):
         print('Start Training')
         total_reward = 0
-        state = env.reset()
+        state = env.reset(random_loc=False)
         rewards = []
 
         for t in tqdm(range(1, args.steps+1)):
@@ -45,7 +45,7 @@ def train(args, env, agent, writer=None):
             total_steps += 1
             if done:
                 #writer.add_scalar('Train/Episode Reward', total_reward, total_steps)
-                state = env.reset()
+                state = env.reset(random_loc=False)
                 #print(total_reward)
                 rewards.append(total_reward)
                 total_reward = 0
@@ -68,7 +68,7 @@ def test(args, env, agent, epoch, writer):
     rewards = []
     total_reward = 0
     total_q = 0
-    state = env.reset()
+    state = env.resetrandom_loc=False)
 
     mean_q_val = agent.get_mean_q_val()
 
@@ -83,7 +83,7 @@ def test(args, env, agent, epoch, writer):
             #writer.add_scalar('Test/Episode Reward', total_reward, step)
             rewards.append(total_reward)
             total_reward = 0
-            state = env.reset()
+            state = env.reset(random_loc=False)
     
     # last element of rewards is mean Q value
     print(rewards)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', default='cuda')
     parser.add_argument('--checkpoint', action='store_true', help='save model every epoch, ER buffer will only be saved as one file')
     parser.add_argument('--logdir', default='log/dqn')
-    parser.add_argument('--size', type=int, default=20)
+    parser.add_argument('--size', type=int, default=5)
     # train
     parser.add_argument('--warmup', default=10000, type=int)
     parser.add_argument('--epochs', default=1200, type=int)
