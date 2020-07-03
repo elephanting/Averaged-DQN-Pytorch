@@ -68,7 +68,7 @@ def test(args, env, agent, epoch, writer):
     rewards = []
     total_reward = 0
     total_q = 0
-    state = env.resetrandom_loc=False)
+    state = env.reset(random_loc=False)
 
     mean_q_val = agent.get_mean_q_val()
 
