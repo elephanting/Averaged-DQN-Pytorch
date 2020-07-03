@@ -98,6 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', default='cuda')
     parser.add_argument('--checkpoint', action='store_true', help='save model every epoch, ER buffer will only be saved as one file')
     parser.add_argument('--logdir', default='log/dqn')
+    parser.add_argument('--size', type=int, default=20)
     # train
     parser.add_argument('--warmup', default=10000, type=int)
     parser.add_argument('--epochs', default=1200, type=int)
@@ -126,7 +127,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    env = Env()
+    env = Env((args.size, args.size))
 
     agent = DQN(args, env)
     train(args, env, agent)
