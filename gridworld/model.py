@@ -60,7 +60,7 @@ class DQN:
         self.epoch = 0
         self.total_steps = 0
 
-    def select_action(self, state, epsilon, action_space):
+    def select_action(self, state, epsilon, action_space, test=False):
         '''epsilon-greedy based on behavior network'''
         if epsilon > random.random():
             action = np.random.randint(4)
@@ -68,6 +68,8 @@ class DQN:
             with torch.no_grad():
                 q_value = self._behavior_net(torch.Tensor(state).unsqueeze(0).to(self.device))
                 action = int(torch.argmax(q_value))
+        if test:
+            return action, q_value.max().cpu().numpy()
         return action
 
     def get_mean_q_val(self):
