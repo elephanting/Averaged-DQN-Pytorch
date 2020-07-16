@@ -60,7 +60,7 @@ class DQN:
         self.epoch = 0
         self.total_steps = 0
 
-    def select_action(self, state, epsilon, action_space, test=False):
+    def select_action(self, state, epsilon, action_space):
         '''epsilon-greedy based on behavior network'''
         if epsilon > random.random():
             action = np.random.randint(4)
@@ -68,17 +68,22 @@ class DQN:
             with torch.no_grad():
                 q_value = self._behavior_net(torch.Tensor(state).unsqueeze(0).to(self.device))
                 action = int(torch.argmax(q_value))
-        if test:
-            return action, float(torch.max(q_value))
         return action
 
-    def get_mean_q_val(self, batch=1000):
-        state, action, reward, next_state, done = self._memory.sample(batch, self.device)
+    def get_mean_q_val(self):
+        '''
+            sample all transitions and compute their q value
+        '''
 
-        with torch.no_grad():
-            q_value = self._behavior_net(state)
-            mean_q_value = np.mean(torch.max(q_value, dim=1).values.cpu().numpy())
-            return mean_q_value
+        total_q = 0
+        for i, transistion in enumerate(self._memory.buffer):
+            state, action, reward, next_state, done = transistion
+
+            with torch.no_grad():
+                q_value = self._behavior_net(torch.FloatTensor(np.float32(state)).to(self.device).unsqueeze(0))
+                total_q += q_value.max()
+
+        return total_q / (i+1)
 
     def append(self, state, action, reward, next_state, done):
         self._memory.append(state, action, reward, next_state, done)

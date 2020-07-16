@@ -8,12 +8,33 @@ import torch.nn as nn
 from env import Env
 from model import DQN
 
+def init_buffer(env, agent):
+    '''
+        initialize all possible transitions into buffer
+    '''
+    n_states = env.gridsize
+
+    # there are row*col-1 possibible agent location
+    for row in range(n_states[0]):
+        for col in range(n_states[1]):
+            for action in range(4):
+                if row == n_states[0]-1 and col == n_states[1]-1:
+                    break
+
+                # action(up:0, down:1, right:2, left:3)
+                state = env.set_agent_loc(row, col)
+                next_state, reward, done = env.step(action)
+                agent.append(state, action, reward, next_state, done)
+
 def train(args, env, agent, writer=None):
-    action_space =4
+    action_space = 4
     total_steps = 0
     start_epoch = 1
-    replay_initial = args.warmup
+    replay_initial = 0
     epsilon_by_steps = lambda steps, replay_start_time: 1 - (1-args.eps_min) * min(replay_start_time, args.epsilon)/args.epsilon
+
+    # initialize ER buffer
+    init_buffer(env, agent)
 
     if args.resume:
         if args.model is None:
@@ -35,10 +56,7 @@ def train(args, env, agent, writer=None):
             # execute action
             next_state, reward, done = env.step(action)
             
-            # store transition
-            agent.append(state, action, reward, next_state, done)
-            if total_steps >= args.warmup:
-                agent.update(total_steps)
+            agent.update(total_steps)
 
             state = next_state
             total_reward += reward
@@ -51,8 +69,10 @@ def train(args, env, agent, writer=None):
                 total_reward = 0
 
             if t % 1000 == 0:
-                tqdm.write('epoch: {}, total steps: {}, average reward: {:.2f}, epsilon: {:.2f}'.format(epoch, total_steps, np.mean(rewards[-100:]), epsilon))
-                rewards = []            
+                if len(rewards) == 0:
+                    rewards = total_reward
+                tqdm.write('epoch: {}, total steps: {}, average reward: {:.2f}, epsilon: {:.2f}'.format(epoch, total_steps, np.mean(rewards), epsilon))
+                rewards = []
         
         if args.checkpoint:
             agent.epoch = epoch
@@ -63,20 +83,17 @@ def train(args, env, agent, writer=None):
         test(args, env, agent, epoch, writer)
 
 def test(args, env, agent, epoch, writer):
-    print('Start Testing, every test needs about 30 mins')
     action_space = 4
     rewards = []
     total_reward = 0
-    total_q = 0
     state = env.reset(random_loc=False)
 
     mean_q_val = agent.get_mean_q_val()
 
     for step in tqdm(range(args.test_steps)):
-        action, q = agent.select_action(state, 0, action_space, True)
+        action = agent.select_action(state, 0, action_space)
         next_state, reward, done = env.step(action)
         total_reward += reward
-        total_q += q
         state = next_state
     
         if done:
@@ -89,8 +106,8 @@ def test(args, env, agent, epoch, writer):
     print(rewards)
 
     print('Average Testing Reward:', np.mean(rewards))
-    print('Average Q value: {:.2f}'.format(total_q/args.test_steps))
-    np.save('result/test_{}.npy'.format(epoch), total_q/args.test_steps)
+    print('Average Q value: {:.2f}'.format(mean_q_val))
+    np.save('result/test_{}.npy'.format(epoch), mean_q_val.cpu().numpy())
 
 if __name__ == '__main__':
     ## arguments ##
@@ -98,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', default='cuda')
     parser.add_argument('--checkpoint', action='store_true', help='save model every epoch, ER buffer will only be saved as one file')
     parser.add_argument('--logdir', default='log/dqn')
-    parser.add_argument('--size', type=int, default=5)
+    parser.add_argument('--size', type=int, default=20)
     # train
     parser.add_argument('--warmup', default=10000, type=int)
     parser.add_argument('--epochs', default=1200, type=int)
@@ -108,7 +125,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', default=0.00001, type=float)
     parser.add_argument('--momentum', default=0.95, type=float)
     parser.add_argument('--epsilon', default=10000, type=int, help='decay steps from eps_max to eps_min')
-    parser.add_argument('--eps_min', default=.1, type=float)
+    parser.add_argument('--eps_min', default=.05, type=float)
     parser.add_argument('--gamma', default=.9, type=float)
     parser.add_argument('--freq', default=4, type=int)
     parser.add_argument('--target_freq', default=10000, type=int)
@@ -128,6 +145,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     env = Env((args.size, args.size))
+    args.capacity = (args.size*args.size-1)*4
 
     agent = DQN(args, env)
     train(args, env, agent)

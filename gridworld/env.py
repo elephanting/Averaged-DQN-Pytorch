@@ -12,7 +12,7 @@ class Env:
         assert grid[0] > 0 and grid[1] > 0, "input positive number"
         self.gridsize = grid
         self.goal = (grid[0]-1, grid[1]-1)
-        self.position = np.zeros(2, dtype=int)
+        self.position = [0, 0]
 
         # initialize grid
         self.grid = np.zeros((grid[0], grid[1]))
@@ -29,9 +29,9 @@ class Env:
         if random_loc is True:
             # random player position
             random_position = np.random.randint(self.gridsize[0]*self.gridsize[1]-1)
-            self.position = np.array([random_position // self.gridsize[0], random_position % self.gridsize[1]], dtype=int)
+            self.position = [random_position // self.gridsize[0], random_position % self.gridsize[1]]
         else:
-            self.position = np.zeros(2, dtype=int)
+            self.position = [0, 0]
 
         self.grid[self.position[0], self.position[1]] = 1
         self.grid[self.goal] = 2
@@ -47,30 +47,27 @@ class Env:
             if self.position[0] - 1 >= 0:
                 self.position[0] = self.position[0] - 1
             else:
-                pass
-                #out_of_boundary = True        
+                out_of_boundary = True        
         elif action == 1:
             if self.position[0] + 1 < self.gridsize[0]:
                 self.position[0] = self.position[0] + 1
             else:
-                pass
-                #out_of_boundary = True
+                out_of_boundary = True
         elif action == 2:
             if self.position[1] + 1 < self.gridsize[1]:
                 self.position[1] = self.position[1] + 1
             else:
-                pass
-                #out_of_boundary = True            
+                out_of_boundary = True            
         elif action == 3:
             if self.position[1] - 1 >= 0:
                 self.position[1] = self.position[1] - 1
             else:
-                pass
-                #out_of_boundary = True
+                out_of_boundary = True
 
         if self.position[0] == self.gridsize[0]-1 and self.position[1] == self.gridsize[1]-1:
             reward = 1
             done = 1
+            self.position = original_position
         elif out_of_boundary:
             #print(self.position[0])
             reward = -1
@@ -81,7 +78,17 @@ class Env:
             self.grid[self.position[0], self.position[1]] = 1
             self.grid[original_position[0], original_position[1]] = 0
         
-        return self.grid, reward, done
+        return self.grid.copy(), reward, done
+
+    def set_agent_loc(self, row, col):
+        assert row < self.gridsize[0]
+        assert col < self.gridsize[1]
+
+        orig_agent_loc = self.position.copy()
+        self.grid[orig_agent_loc[0], orig_agent_loc[1]] = 0
+        self.position = [row, col]
+        self.grid[row, col] = 1
+        return self.grid.copy()
 
 if __name__ == '__main__':
     env = Env()
