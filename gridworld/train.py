@@ -86,12 +86,14 @@ def test(args, env, agent, epoch, writer):
     action_space = 4
     rewards = []
     total_reward = 0
+    total_q = []
     state = env.reset(random_loc=False)
 
     mean_q_val = agent.get_mean_q_val()
 
     for step in tqdm(range(args.test_steps)):
-        action = agent.select_action(state, 0, action_space)
+        action, q = agent.select_action(state, args.test_epsilon, action_space, test=True)
+        total_q.append(q)
         next_state, reward, done = env.step(action)
         total_reward += reward
         state = next_state
@@ -102,12 +104,17 @@ def test(args, env, agent, epoch, writer):
             total_reward = 0
             state = env.reset(random_loc=False)
     
-    # last element of rewards is mean Q value
-    print(rewards)
+    if len(rewards) == 0:
+        mean_reward = 0
+    else:
+        mean_reward = np.mean(rewards)
 
-    print('Average Testing Reward:', np.mean(rewards))
+    mean_q_val = np.mean(total_q)
+
+    print('Average Testing Reward:', mean_reward)
     print('Average Q value: {:.2f}'.format(mean_q_val))
-    np.save('result/test_{}.npy'.format(epoch), mean_q_val.cpu().numpy())
+    np.save('result/test_q_{}.npy'.format(epoch), mean_q_val)
+    np.save('result/test_reward_{}.npy'.format(epoch), mean_reward)
 
 if __name__ == '__main__':
     ## arguments ##
@@ -117,7 +124,6 @@ if __name__ == '__main__':
     parser.add_argument('--logdir', default='log/dqn')
     parser.add_argument('--size', type=int, default=20)
     # train
-    parser.add_argument('--warmup', default=10000, type=int)
     parser.add_argument('--epochs', default=1200, type=int)
     parser.add_argument('--steps', default=100000, type=int, help='steps per epoch')
     parser.add_argument('--capacity', default=10000, type=int)
@@ -131,7 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_freq', default=10000, type=int)
     # test
     parser.add_argument('--test_only', action='store_true')
-    parser.add_argument('--test_steps', type=int, default=1140)
+    parser.add_argument('--test_steps', type=int, default=12500)
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--test_epsilon', default=0, type=float)
     # average
