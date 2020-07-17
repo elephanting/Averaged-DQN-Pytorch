@@ -41,11 +41,11 @@ python DQN.py --checkpoint --k 10 --resume --model model/weight.tar
 
 ## Evaluation
 We use BreakoutNoFrameskip-v4 as experimental environment. The shaded area presents one standard deviation.
-<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/both.png"/>
+<img src="./misc/both.png"/>
 
 To evaluate the overestimation phenomenon, we use Gridworld as experimental environment since its optimal Q value can be easily computed. The result is shown below.
 
-<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/q.png"/>
+<img src="./misc/q.png"/>
 
 For more detail, you can refer to [GRIDWORLD.md](https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/gridworld/GRIDWORLD.md) in gridworld folder.
 
