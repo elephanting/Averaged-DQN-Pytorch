@@ -68,7 +68,7 @@ def train(args, env, agent, writer=None):
                 rewards.append(total_reward)
                 total_reward = 0
 
-            if t % 1000 == 0:
+            if t % 10000 == 0:
                 if len(rewards) == 0:
                     rewards = total_reward
                 tqdm.write('epoch: {}, total steps: {}, average reward: {:.2f}, epsilon: {:.2f}'.format(epoch, total_steps, np.mean(rewards), epsilon))
@@ -83,13 +83,12 @@ def train(args, env, agent, writer=None):
         test(args, env, agent, epoch, writer)
 
 def test(args, env, agent, epoch, writer):
+    print('Start Testing')
     action_space = 4
     rewards = []
     total_reward = 0
     total_q = []
     state = env.reset(random_loc=False)
-
-    mean_q_val = agent.get_mean_q_val()
 
     for step in tqdm(range(args.test_steps)):
         action, q = agent.select_action(state, args.test_epsilon, action_space, test=True)
@@ -138,7 +137,6 @@ if __name__ == '__main__':
     # test
     parser.add_argument('--test_only', action='store_true')
     parser.add_argument('--test_steps', type=int, default=12500)
-    parser.add_argument('--render', action='store_true')
     parser.add_argument('--test_epsilon', default=0, type=float)
     # average
     parser.add_argument('-k', '--k', type=int, default=1, help='number of average target network, if k = 1, perform vanilla DQN')
