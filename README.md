@@ -38,3 +38,18 @@ python DQN.py --checkpoint --k 10 --resume --model model/weight.tar
 | --ddqn        | perform Double-DQN |
 | --resume      | resume training |
 | --model        | model path used in resume training |
+
+## Evaluation
+We use BreakoutNoFrameskip-v4 as experimental environment. The shaded area presents one standard deviation.
+<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/both.png"/>
+
+To evaluate the overestimation phenomenon, we use Gridworld as experimental environment since its optimal Q value can be easily computed. The result is shown below.
+
+<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/q.png"/>
+
+For more detail, you can refer to [GRIDWORLD.md](https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/gridworld/GRIDWORLD.md) in gridworld folder.
+
+## Reference
+* [Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement Learning](https://arxiv.org/pdf/1611.01929.pdf)
+* [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/pdf/1509.06461.pdf)
+* [Human Level Control through Deep Reinforcement Learning](https://www.nature.com/nature/journal/v518/n7540/full/nature14236.html)
