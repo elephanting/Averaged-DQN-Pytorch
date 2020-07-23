@@ -39,10 +39,10 @@ for i in range(1, n_epoch+1):
     DQN_q_tmp = []
     DQN_reward_tmp = []
     for directory in os.listdir('path to vanilla DQN result folder'):
-        q_file_name = os.path.join(os.path.join('path to vanilla DQN result folder', directory), 'test_q_{}.npy'.format(i))
-        reward_file_name = os.path.join(os.path.join('path to vanilla DQN result folder', directory), 'test_reward_{}.npy'.format(i))
-        DQN_q = np.load(q_file_name)
-        DQN_reward = np.load(reward_file_name)
+        file_name = os.path.join(os.path.join('path to vanilla DQN result folder', directory), 'test_{}.npy'.format(i))
+        data = np.load(file_name)
+        DQN_q = data[-1]
+        DQN_reward = np.mean(data[:-1])
 
         DQN_q_tmp.append(DQN_q)
         DQN_reward_tmp.append(DQN_reward)
@@ -57,10 +57,10 @@ for i in range(1, n_epoch+1):
     k5_q_tmp = []
     k5_reward_tmp = []
     for directory in os.listdir('path to k = 5 averaged-DQN result folder'):
-        q_file_name = os.path.join(os.path.join('path to k = 5 averaged-DQN result folder', directory), 'test_q_{}.npy'.format(i))
-        reward_file_name = os.path.join(os.path.join('path to k = 5 averaged-DQN result folder', directory), 'test_reward_{}.npy'.format(i))
-        k5_q = np.load(q_file_name)
-        k5_reward = np.load(reward_file_name)
+        file_name = os.path.join(os.path.join('path to k = 5 averaged-DQN result folder', directory), 'test_{}.npy'.format(i))
+        data = np.load(file_name)
+        k5_q = data[-1]
+        k5_reward = np.mean(data[:-1])
 
         k5_q_tmp.append(k5_q)
         k5_reward_tmp.append(k5_reward)
@@ -75,10 +75,10 @@ for i in range(1, n_epoch+1):
     k10_q_tmp = []
     k10_reward_tmp = []
     for directory in os.listdir('path to k = 10 averaged-DQN result folder'):
-        q_file_name = os.path.join(os.path.join('path to k = 10 averaged-DQN result folder', directory), 'test_q_{}.npy'.format(i))
-        reward_file_name = os.path.join(os.path.join('path to k = 10 averaged-DQN result folder', directory), 'test_reward_{}.npy'.format(i))
-        k10_q = np.load(q_file_name)
-        k10_reward = np.load(reward_file_name)
+        file_name = os.path.join(os.path.join('path to k = 10 averaged-DQN result folder', directory), 'test_{}.npy'.format(i))
+        data = np.load(file_name)
+        k10_q = data[-1]
+        k10_reward = np.mean(data[:-1])
 
         k10_q_tmp.append(k10_q)
         k10_reward_tmp.append(k10_reward)
@@ -93,10 +93,10 @@ for i in range(1, n_epoch+1):
     DDQN_q_tmp = []
     DDQN_reward_tmp = []
     for directory in os.listdir('path to DDQN result folder'):
-        q_file_name = os.path.join(os.path.join('path to DDQN result folder', directory), 'test_q_{}.npy'.format(i))
-        reward_file_name = os.path.join(os.path.join('path to DDQN result folder', directory), 'test_reward_{}.npy'.format(i))
-        DDQN_q = np.load(q_file_name)
-        DDQN_reward = np.load(reward_file_name)
+        file_name = os.path.join(os.path.join('path to DDQN result folder', directory), 'test_{}.npy'.format(i))
+        data = np.load(file_name)
+        DDQN_q = data[-1]
+        DDQN_reward = np.mean(data[:-1])
 
         DDQN_q_tmp.append(DDQN_q)
         DDQN_reward_tmp.append(DDQN_reward)
@@ -111,10 +111,10 @@ for i in range(1, n_epoch+1):
     avg_DDQN_q_tmp = []
     avg_DDQN_reward_tmp = []
     for directory in os.listdir('path to avg-DDQN result folder'):
-        q_file_name = os.path.join(os.path.join('path to avg-DDQN result folder', directory), 'test_q_{}.npy'.format(i))
-        reward_file_name = os.path.join(os.path.join('path to avg-DDQN result folder', directory), 'test_reward_{}.npy'.format(i))
-        avg_DDQN_q = np.load(q_file_name)
-        avg_DDQN_reward = np.load(reward_file_name)
+        file_name = os.path.join(os.path.join('path to avg-DDQN result folder', directory), 'test_{}.npy'.format(i))
+        data = np.load(file_name)
+        avg_DDQN_q = data[-1]
+        avg_DDQN_reward = np.mean(data[:-1])
 
         avg_DDQN_q_tmp.append(avg_DDQN_q)
         avg_DDQN_reward_tmp.append(avg_DDQN_reward)
@@ -141,11 +141,6 @@ ax1.fill_between(np.arange(n_epoch)+1, np.array(DDQN_q_mean)-np.array(DDQN_q_std
 ax1.plot(np.arange(n_epoch)+1, avg_DDQN_q_mean, color='purple', label='avg-DDQN k = 10')
 ax1.fill_between(np.arange(n_epoch)+1, np.array(avg_DDQN_q_mean)-np.array(avg_DDQN_q_std), np.array(avg_DDQN_q_mean)+np.array(avg_DDQN_q_std), color='orchid')
 
-# the optimal Q value
-# 38 is computed by 2*(size-1)
-optimal = [0.9**38 for _ in range(n_epoch)]
-ax1.plot(np.arange(n_epoch)+1, optimal, linestyle=':', color='black', label='optimal Q')
-
 # plot reward score
 ax2.plot(np.arange(n_epoch)+1, DQN_reward_mean, color='blue', label='vanilla DQN')
 ax2.fill_between(np.arange(n_epoch)+1, np.array(DQN_reward_mean)-np.array(DQN_reward_std), np.array(DQN_reward_mean)+np.array(DQN_reward_std), color='lightblue')
@@ -162,16 +157,16 @@ ax2.fill_between(np.arange(n_epoch)+1, np.array(DDQN_reward_mean)-np.array(DDQN_
 ax2.plot(np.arange(n_epoch)+1, avg_DDQN_reward_mean, color='purple', label='avg-DDQN k = 10')
 ax2.fill_between(np.arange(n_epoch)+1, np.array(avg_DDQN_reward_mean)-np.array(avg_DDQN_reward_std), np.array(avg_DDQN_reward_mean)+np.array(avg_DDQN_reward_std), color='orchid')
 
-ax1.set_title('Gridworld (20x20) Q value estimation')
-ax2.set_title('Gridworld (20x20) reward')
+ax1.set_title('Breakout-v4 Q value estimation')
+ax2.set_title('Breakout-v4 score')
 
-ax1.set_xlabel('epochs (100k steps)')
+ax1.set_xlabel('epochs (1M steps)')
 ax1.set_ylabel('Q value')
 
-ax2.set_xlabel('epochs (100k steps)')
+ax2.set_xlabel('epochs (1M steps)')
 ax2.set_ylabel('score')
 
 ax1.legend()
 ax2.legend()
-#plt.savefig('all_q.png')
+#plt.savefig('result.png')
 plt.show()

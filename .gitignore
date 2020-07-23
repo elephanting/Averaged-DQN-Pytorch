@@ -1,5 +1,7 @@
 *tar
 *pt
 *pth
+*.png
+*.npy
 misc/*
 __pycache__
