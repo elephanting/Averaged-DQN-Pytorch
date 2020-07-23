@@ -42,17 +42,21 @@ The experience replay buffer will be filled with all possible transitions before
 According to [DDQN paper](https://arxiv.org/pdf/1509.06461.pdf), the optimal Q value is computed by ***The ground truth averaged values are obtained by running
 the best learned policies for several episodes and computing the actual cumulative rewards***. The best learned policy in Gridworld is its shortest path from starting point to ending point. So optimal Q value will be
 
-<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/optimal.png" alt="optimal" width="30%" height="30%" />
-where gamma is discounted factor. For example, if size of gridworld is 20x20 and gamma is 0.9, it's shortest path will be 18 and the optimal Q value will be 0.15.
+<img src="../misc/optimal.png" width="30%" height="30%" />
+
+where gamma is discounted factor. For example, if size of gridworld is 20x20 and gamma is 0.9, it's shortest path will be 38 and the optimal Q value will be around 0.018.
 
 ## Evaluation of DQN, Averaged-DQN and DDQN
 The testing Q value is computed every epoch and the formula is refered to [DDQN paper](https://arxiv.org/pdf/1509.06461.pdf):
 
-The testing step size is set as 12500.
-### DQN and Averaged-DQN
-<img src="https://github.com/elephanting/Averaged-DQN-Pytorch/blob/master/misc/q.png"/>
+<img src="../misc/test_q.png" width="30%" height="30%" />
 
-### DQN, Averaged-DQN, DDQN and Averaged-DDQN
+The testing step size is set as 12500. The bold lines are averages over 10 independent learning trials and the shaded area presents one standard deviation.
+### DQN and Averaged-DQN
+<img src="../misc/q.png"/>
+
+### DQN, Averaged-DQN, DDQN and Averaged-DDQN(k = 10)
+<img src="../misc/all_q.png"/>
 
 ## Reference
 * [Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement Learning](https://arxiv.org/pdf/1611.01929.pdf)
