@@ -163,7 +163,7 @@ ax2.plot(np.arange(n_epoch)+1, avg_DDQN_reward_mean, color='purple', label='avg-
 ax2.fill_between(np.arange(n_epoch)+1, np.array(avg_DDQN_reward_mean)-np.array(avg_DDQN_reward_std), np.array(avg_DDQN_reward_mean)+np.array(avg_DDQN_reward_std), color='orchid')
 
 ax1.set_title('Gridworld (20x20) Q value estimation')
-ax2.set_title('Gridworld (20x20) reward')
+ax2.set_title('Gridworld (20x20) score')
 
 ax1.set_xlabel('epochs (100k steps)')
 ax1.set_ylabel('Q value')
