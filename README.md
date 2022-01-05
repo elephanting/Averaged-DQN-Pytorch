@@ -1,5 +1,6 @@
 # Averaged-DQN
-Paper: [Averaged-DQN: Variance Reduction and Stabilization
+This is an unofficial Pytorch implementation project of 
+paper: [Averaged-DQN: Variance Reduction and Stabilization
 for Deep Reinforcement Learning](https://arxiv.org/pdf/1611.01929.pdf)
 
 ## Installation
